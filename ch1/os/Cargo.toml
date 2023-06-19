@@ -6,3 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+
+[[bin]]
+# solve the <no_std Can't find crate for 'test'> problem
+# ref: <https://github.com/rust-lang/vscode-rust/issues/729>
+name = "os"
+test = false
+bench = false

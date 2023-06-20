@@ -1,17 +1,22 @@
+#![feature(panic_info_message)]
 #![no_std] // tell rustc not use the standard library
 #![no_main] // the simplest way to disable the 'start' program to initialize env
 
 mod lang_items;
+mod sbi;
+#[macro_use]
+mod console;
 
 use core::arch::global_asm;
 
 global_asm!(include_str!("entry.asm"));
 
-#[no_mangle]
+#[no_mangle] // avoid compiler confusion
 fn rust_main() {
     // do nothing
     clear_bss();
-    loop {}
+    println!("Hello, world!");
+    panic!("Shutdown machine!");
 }
 
 fn clear_bss() {

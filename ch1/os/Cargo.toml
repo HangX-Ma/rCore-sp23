@@ -7,6 +7,8 @@ edition = "2021"
 
 [dependencies]
 
+[profile.release]
+debug = true
 
 [[bin]]
 # solve the <no_std Can't find crate for 'test'> problem

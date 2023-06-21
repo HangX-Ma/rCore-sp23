@@ -1,0 +1,9 @@
+# use 'rustup target list' to show the target
+[build]
+target = "x86_64-unknown-linux-gnu"
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = [
+    "-Cforce-frame-pointers=yes"
+]
+

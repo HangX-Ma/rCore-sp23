@@ -4,6 +4,6 @@ target = "x86_64-unknown-linux-gnu"
 
 [target.x86_64-unknown-linux-gnu]
 rustflags = [
-    "-Cforce-frame-pointers=yes"
+    "-Cforce-frame-pointers=yes" # get base pointer
 ]
 

@@ -1,24 +1,36 @@
 use core::arch::asm;
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-fn main() {
-    let mut fp: u64;
-    println!("=================== stack trace begin ==================");
+fn print_stack_trace_chain() {
+    let fp: usize;
+    println!("== STACK TRACE BEGIN");
     unsafe {
         asm! (
-            "mov {}, rsp",
-            out(reg) fp,
+            "mov {fp}, rbp",
+            fp = out(reg) fp,
         );
     }
-    println!("Initial stack frame pointer address: {:#x}", fp);
-    println!("[return address]\t[prev frame address]");
 
-    while fp != 0x01 {
-        unsafe {
-            println!("{:#x}\t\t{:#x}", *((fp - 8) as *mut u64),*((fp - 16) as *mut u64) );
-            fp = *((fp - 16) as *mut u64);
-        }
+    let mut fp = fp;
+    for _ in 0..5 {
+        println!(" == {:#p}", (fp) as *mut usize);
+        fp = unsafe {
+            (fp as *const usize).offset(0).read()
+        };
     }
-    println!("=================== trace end ==================");
+    println!("== STACK TRACE END");
+}
 
+fn finite_loop(num: i64) -> i64 {
+    println!("Calling finite_loop({})", num);
+    print_stack_trace_chain();
+    if num == 0 {
+        return 1;
+    }
+    return finite_loop(num - 1) * num;
+}
+
+
+fn main() {
+    print_stack_trace_chain();
+    println!("Output: {}", finite_loop(2));
 }

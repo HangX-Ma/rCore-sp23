@@ -9,6 +9,8 @@ mod console;
 
 use core::arch::global_asm;
 
+use crate::sbi::shutdown;
+
 global_asm!(include_str!("entry.asm"));
 
 #[no_mangle] // avoid compiler confusion
@@ -16,7 +18,7 @@ fn rust_main() {
     // do nothing
     clear_bss();
     println!("Hello, world!");
-    panic!("Shutdown machine!");
+    shutdown();
 }
 
 fn clear_bss() {

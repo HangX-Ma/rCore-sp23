@@ -10,11 +10,14 @@ mod sbi;
 #[macro_use]
 mod console;
 mod logging;
+mod sync;
+mod batch;
+pub mod syscall;
+pub mod trap;
+
 use log::*;
 
 use core::arch::global_asm;
-
-use crate::sbi::shutdown;
 
 global_asm!(include_str!("entry.asm"));
 global_asm!(include_str!("link_app.S"));
@@ -72,7 +75,9 @@ fn rust_main() {
         boot_stack_top as usize, boot_stack_lower_bound as usize);
 
     println!("Hello, world!");
-    shutdown();
+    trap::init();
+    batch::init();
+    batch::run_next_app();
 }
 
 pub fn test_runner(_test: &[&i32]) {

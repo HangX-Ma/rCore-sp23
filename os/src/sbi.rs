@@ -34,8 +34,19 @@ pub fn console_putchar(c: usize) {
     sbi_call(SBI_CONSOLE_PUTCHAR, c, 0, 0);
 }
 
-// machine shutdown
-pub fn shutdown() -> ! {
-    sbi_call(SBI_SHUTDOWN, 0, 0, 0);
-    panic!("It should shutdown!");
+/// use sbi call to getchar from console
+pub fn console_getchar() -> usize {
+    sbi_call(SBI_CONSOLE_GETCHAR, 0, 0, 0)
 }
+
+/// use sbi call to shutdown the kernel
+pub fn shutdown(failure: bool) -> ! {
+    use sbi_rt::{system_reset, NoReason, Shutdown, SystemFailure};
+    if !failure {
+        system_reset(Shutdown, NoReason);
+    } else {
+        system_reset(Shutdown, SystemFailure);
+    }
+    unreachable!()
+}
+

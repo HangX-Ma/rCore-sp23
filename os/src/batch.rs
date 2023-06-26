@@ -22,10 +22,10 @@ struct UserStack {
     data: [u8; USER_STACK_SIZE],
 }
 
-static KERNEL_STACK: KernelStack = KernelStack {
+static mut KERNEL_STACK: KernelStack = KernelStack {
     data: [0; KERNEL_STACK_SIZE],
 };
-static USER_STACK: UserStack = UserStack {
+static mut USER_STACK: UserStack = UserStack {
     data: [0; USER_STACK_SIZE],
 };
 

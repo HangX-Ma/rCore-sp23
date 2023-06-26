@@ -37,7 +37,7 @@ pub fn init() {
 
 #[no_mangle]
 /// handle an interrupt, exception, or system call from user space
-pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
+pub extern "C" fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
     let scause = scause::read(); // get trap cause
     let stval = stval::read(); // get extra value
     match scause.cause() {

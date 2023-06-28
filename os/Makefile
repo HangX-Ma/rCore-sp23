@@ -12,12 +12,20 @@ OBJCOPY		:= rust-objcopy --binary-architecture=riscv64
 # build
 TARGET		:= riscv64gc-unknown-none-elf
 MODE		:= release
+# MODE		:= debug
 KERNEL_ELF	:= target/$(TARGET)/$(MODE)/os
 KERNEL_BIN	:= $(KERNEL_ELF).bin
 DISASM_TMP := target/$(TARGET)/$(MODE)/asm
 
+# Building mode argument
+ifeq ($(MODE), release)
+	MODE_ARG := --release
+endif
+
 # Disassembly
 DISASM ?= -x
+
+TEST ?= 0
 
 # run
 KERNEL_ENTRY_PA := 0x80200000
@@ -39,7 +47,11 @@ $(KERNEL_BIN): kernel
 	@$(OBJCOPY) $(KERNEL_ELF) --strip-all -O binary $@
 
 kernel:
-	@cargo build --$(MODE)
+	@cd ../user && make build TEST=$(TEST)
+	@echo Running platform: $(BOARD)
+	@cp src/linker-$(BOARD).ld src/linker.ld
+	@cargo build $(MODE_ARG)
+	@rm src/linker.ld
 
 disasm: kernel
 	@$(OBJDUMP) $(DISASM) $(KERNEL_ELF) | less

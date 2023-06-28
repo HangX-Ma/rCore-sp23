@@ -11,6 +11,8 @@ pub mod console;
 mod lang_items;
 mod syscall;
 
+pub use console::{STDOUT};
+
 #[no_mangle]
 #[link_section = ".text.entry"]
 pub extern "C" fn _start() -> ! {
@@ -40,11 +42,11 @@ fn main() -> i32 {
 
 use syscall::*;
 
-fn write(fd: usize, buffer: &[u8]) -> isize {
+pub fn write(fd: usize, buffer: &[u8]) -> isize {
     sys_write(fd, buffer)
 }
 
-fn exit(exit_code: i32) -> isize {
+pub fn exit(exit_code: i32) -> isize {
     sys_exit(exit_code)
 }
 

@@ -7,27 +7,27 @@ use core::cell::UnsafeCell;
 use core::arch::asm;
 use lazy_static::*;
 
-const USER_STACK_SIZE: usize = 4096 * 2;
-const KERNEL_STACK_SIZE: usize = 4096 * 2;
+pub const USER_STACK_SIZE: usize = 4096;
+pub const KERNEL_STACK_SIZE: usize = 4096;
 const MAX_APP_NUM: usize = 16;
-const APP_BASE_ADDRESS: usize = 0x80400000;
-const APP_SIZE_LIMIT: usize = 0x20000;
+pub const APP_BASE_ADDRESS: usize = 0x80400000;
+pub const APP_SIZE_LIMIT: usize = 0x20000;
 
 #[repr(align(4096))]
-struct KernelStack {
+pub struct KernelStack {
     data: UnsafeCell<[u8; KERNEL_STACK_SIZE]>,
 }
 
 #[repr(align(4096))]
-struct UserStack {
-    data: UnsafeCell<[u8; KERNEL_STACK_SIZE]>,
+pub struct UserStack {
+    data: UnsafeCell<[u8; USER_STACK_SIZE]>,
 }
 
-static mut KERNEL_STACK: KernelStack = KernelStack {
+pub static mut KERNEL_STACK: KernelStack = KernelStack {
     data: UnsafeCell::new([0; KERNEL_STACK_SIZE]),
 };
-static mut USER_STACK: UserStack = UserStack {
-    data: UnsafeCell::new([0; KERNEL_STACK_SIZE]),
+pub static mut USER_STACK: UserStack = UserStack {
+    data: UnsafeCell::new([0; USER_STACK_SIZE]),
 };
 
 impl KernelStack {
@@ -35,7 +35,8 @@ impl KernelStack {
             (self.data.get() as *mut u8).wrapping_add(KERNEL_STACK_SIZE)
     }
     pub fn push_context(&self, cx: TrapContext) -> &'static mut TrapContext {
-        let cx_ptr = (self.get_sp().wrapping_sub( core::mem::size_of::<TrapContext>())) as *mut TrapContext;
+        let cx_ptr = 
+            (self.get_sp().wrapping_sub( core::mem::size_of::<TrapContext>())) as *mut TrapContext;
         unsafe {
             *cx_ptr = cx;
             cx_ptr.as_mut().unwrap()
@@ -44,7 +45,7 @@ impl KernelStack {
 }
 
 impl UserStack {
-    fn get_sp(&self) -> *mut u8 {
+    pub fn get_sp(&self) -> *mut u8 {
         (self.data.get() as *mut u8).wrapping_add(USER_STACK_SIZE)
     }
 }

@@ -4,6 +4,7 @@
 #![reexport_test_harness_main = "test_main"]
 #![feature(custom_test_frameworks)]
 #![test_runner(test_runner)]
+#![feature(strict_provenance)]
 
 mod lang_items;
 mod sbi;

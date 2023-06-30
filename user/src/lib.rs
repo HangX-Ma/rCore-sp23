@@ -9,7 +9,7 @@
 #[macro_use]
 pub mod console;
 mod lang_items;
-mod syscall;
+pub mod syscall;
 
 pub use console::{STDOUT};
 
@@ -50,6 +50,6 @@ pub fn exit(exit_code: i32) -> isize {
     sys_exit(exit_code)
 }
 
-pub fn test_runner(_test: &[&i32]) {
+pub fn test_runner(_test: &[&dyn Fn()]) {
     loop {}
 }

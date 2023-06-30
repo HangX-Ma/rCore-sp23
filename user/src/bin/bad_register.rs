@@ -20,6 +20,6 @@ pub fn main() -> ! {
     panic!("(-_-) I get sstatus:{:x}\n", sstatus);
 }
 
-pub fn test_runner(_test: &[&i32]) {
+pub fn test_runner(_test: &[&dyn Fn()]) {
     loop {}
 }

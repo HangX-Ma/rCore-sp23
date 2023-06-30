@@ -19,6 +19,6 @@ pub fn main() -> ! {
     panic!("FAIL: T.T\n");
 }
 
-pub fn test_runner(_test: &[&i32]) {
+pub fn test_runner(_test: &[&dyn Fn()]) {
     loop {}
 }

@@ -85,11 +85,10 @@ fn rust_main() {
     // ch2 basic
     trap::init();
     batch::init();
-
-    #[cfg(test)]
-    test_main();
-
     batch::run_next_app();
+
+    // #[cfg(test)]
+    // test_main();
 }
 
 #[cfg(test)] // ensure this function only runs in test scenario
@@ -100,9 +99,4 @@ pub fn test_runner(tests: &[&dyn Fn()]) {
     }
     // use crate::board::QEMUExit;
     // crate::board::QEMU_EXIT_HANDLE.exit_success(); // CI autotest success
-}
-
-#[test_case]
-fn ch2_pro1() {
-    panic!("Hello world!");
 }

@@ -13,6 +13,6 @@ fn main() -> i32 {
     0
 }
 
-pub fn test_runner(_test: &[&i32]) {
+pub fn test_runner(_test: &[&dyn Fn()]) {
     loop {}
 }

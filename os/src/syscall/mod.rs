@@ -15,6 +15,7 @@ const SYSCALL_EXIT: usize = 93;
 
 mod fs;
 mod process;
+pub mod stats;
 
 use fs::*;
 use process::*;

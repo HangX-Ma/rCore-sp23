@@ -14,8 +14,9 @@
 
 mod context;
 
-use crate::batch::{run_next_app, time_elapse};
-use crate::syscall::syscall;
+use crate::batch::{run_next_app, app_time_elapse};
+use crate::syscall::{syscall};
+// use crate::syscall::stats*; // ch2-pro3
 use core::arch::global_asm;
 use riscv::register::{
     mtvec::TrapMode,
@@ -38,22 +39,23 @@ pub fn init() {
 #[no_mangle]
 /// handle an interrupt, exception, or system call from user space
 pub extern "C" fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
-
     let scause = scause::read(); // get trap cause
     let stval = stval::read(); // get extra value
     match scause.cause() {
         Trap::Exception(Exception::UserEnvCall) => {
+            let syscall_id = cx.x[17];
+            // stats_update(syscall_id); // ch2-pro3
             cx.sepc += 4;
-            cx.x[10] = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]) as usize;
+            cx.x[10] = syscall(syscall_id, [cx.x[10], cx.x[11], cx.x[12]]) as usize;
         }
         Trap::Exception(Exception::StoreFault) | Trap::Exception(Exception::StorePageFault) => {
             println!("[kernel] PageFault in application, kernel killed it.");
-            time_elapse();
+            app_time_elapse();
             run_next_app();
         }
         Trap::Exception(Exception::IllegalInstruction) => {
             println!("[kernel] IllegalInstruction in application, kernel killed it.");
-            time_elapse();
+            app_time_elapse();
             run_next_app();
         }
         _ => {

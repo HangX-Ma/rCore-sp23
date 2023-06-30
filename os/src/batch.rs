@@ -161,7 +161,7 @@ pub fn run_next_app() -> ! {
     panic!("Unreachable in batch::run_current_app!");
 }
 
-pub fn time_elapse() {
+pub fn app_time_elapse() {
     unsafe {
         if let Some(start) = APP_START_TIME {
             let elapsed: u64;

@@ -6,6 +6,9 @@ use crate::trap::TrapContext;
 use core::cell::UnsafeCell;
 use core::arch::asm;
 use lazy_static::*;
+use riscv::register::time;
+// lab2-pro4
+pub static mut APP_START_TIME: Option<u64> = None;
 
 pub const USER_STACK_SIZE: usize = 4096;
 pub const KERNEL_STACK_SIZE: usize = 4096;
@@ -134,6 +137,9 @@ pub fn print_app_info() {
 
 /// run next app
 pub fn run_next_app() -> ! {
+    unsafe {
+        APP_START_TIME = Some(time::read64());
+    }
     let mut app_manager = APP_MANAGER.exclusive_access();
     let current_app = app_manager.get_current_app();
     unsafe {
@@ -153,4 +159,19 @@ pub fn run_next_app() -> ! {
         )) as *const _ as usize);
     }
     panic!("Unreachable in batch::run_current_app!");
+}
+
+pub fn time_elapse() {
+    unsafe {
+        if let Some(start) = APP_START_TIME {
+            let elapsed: u64;
+            let now = time::read64();
+            if now < start {
+                elapsed = ((u64::MAX - start) + now) / 10000;
+            } else {
+                elapsed = (now - start) / 10001;
+            }
+            println!("[kernel] Application cost {} ms", elapsed);
+        }
+    }
 }

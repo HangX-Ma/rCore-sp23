@@ -1,5 +1,6 @@
 //! File and filesystem-related syscalls
 
+// ch2 lab start
 use log::*;
 use crate::batch::{USER_STACK, USER_STACK_SIZE, APP_BASE_ADDRESS, APP_SIZE_LIMIT};
 
@@ -17,6 +18,7 @@ fn check_addr_legality(slice: &[u8]) -> Option<isize> {
         Some(app_size as isize)
     }
 }
+// ch2 lab end
 
 /// write buf of length `len` to a file with `fd`
 pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {

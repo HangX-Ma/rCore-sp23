@@ -1,9 +1,9 @@
-TARGET := riscv64gc-unknown-none-elf
-MODE := release
+TARGET 		:= riscv64gc-unknown-none-elf
+MODE 		:= release
 # MODE := debug
-APP_DIR := src/bin
-TARGET_DIR := target/$(TARGET)/$(MODE)
-BUILD_DIR := build
+APP_DIR 	:= src/bin
+TARGET_DIR 	:= target/$(TARGET)/$(MODE)
+BUILD_DIR 	:= build
 
 TEST ?= 0
 ifeq ($(TEST), 0)

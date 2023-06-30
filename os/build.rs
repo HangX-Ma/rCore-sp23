@@ -22,7 +22,18 @@ fn link_user_bins() -> Result<()> {
                     .unwrap()
                     .to_str()
                     .unwrap();
-                return Some(file_name.strip_suffix(".rs").unwrap().to_string());
+                let name_stripped = file_name.strip_suffix(".rs").unwrap().to_string();
+                // filter the rust file with prefix 'test'
+                if let Some(ch) = option_env!("TEST") {
+                    if ch.len() == 1 && ch.chars().into_iter().all(|c| c.is_numeric()) &&
+                        name_stripped.starts_with(("test".to_string() + ch).as_str()) {
+                        return Some(name_stripped);
+                    }
+                }
+                if name_stripped.starts_with("test") {
+                    return None;
+                }
+                return Some(name_stripped);
             }
             None
         })

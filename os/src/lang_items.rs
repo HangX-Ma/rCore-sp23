@@ -2,6 +2,7 @@
 use core::panic::PanicInfo;
 use crate::println;
 use crate::sbi::shutdown;
+use crate::stack_btrace::btrace;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
@@ -15,5 +16,6 @@ fn panic(info: &PanicInfo) -> ! {
     } else {
         println!("Panicked: {}", info.message().unwrap());
     }
+    btrace(); // ch2-lab feature
     shutdown(true)
 }

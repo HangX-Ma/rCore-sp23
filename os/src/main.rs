@@ -1,23 +1,28 @@
 #![no_std] // tell rustc not use the standard library
 #![no_main] // the simplest way to disable the 'start' program to initialize env
 #![feature(panic_info_message)]
-#![reexport_test_harness_main = "test_main"]
+#![feature(strict_provenance)]
+// customized tests
+#![reexport_test_harness_main = "test_main"] // help us create new `main` entry for test
 #![feature(custom_test_frameworks)]
 #![test_runner(test_runner)]
-#![feature(strict_provenance)]
 
-mod lang_items;
-mod sbi;
+#[path = "boards/qemu.rs"]
+mod board;
+
 #[macro_use]
-mod console;
+pub mod console;
+mod lang_items;
 mod logging;
+mod sbi;
 mod sync;
-mod batch;
 pub mod syscall;
 pub mod trap;
+mod batch;
+// ch2-problems
+mod stack_btrace;
 
 use log::*;
-
 use core::arch::global_asm;
 
 global_asm!(include_str!("entry.asm"));
@@ -76,11 +81,28 @@ fn rust_main() {
         boot_stack_top as usize, boot_stack_lower_bound as usize);
 
     println!("Hello, world!");
+
+    // ch2 basic
     trap::init();
     batch::init();
+
+    #[cfg(test)]
+    test_main();
+
     batch::run_next_app();
 }
 
-pub fn test_runner(_test: &[&i32]) {
-    loop {}
+#[cfg(test)] // ensure this function only runs in test scenario
+pub fn test_runner(tests: &[&dyn Fn()]) {
+    println!("Running {} tests", tests.len());
+    for test in tests {
+        test();
+    }
+    // use crate::board::QEMUExit;
+    // crate::board::QEMU_EXIT_HANDLE.exit_success(); // CI autotest success
+}
+
+#[test_case]
+fn ch2_pro1() {
+    panic!("Hello world!");
 }

@@ -12,7 +12,7 @@ fn main() {
 
 fn link_user_bins() -> Result<()> {
     let mut f = File::create("src/link_app.S")?;
-    let mut apps: Vec<String> = read_dir("../user/src/bin")?
+    let mut apps: Vec<String> = read_dir("../user/build/bin")?
         .into_iter()
         .filter_map(|entry| {
             let entry = entry.unwrap();
@@ -22,20 +22,7 @@ fn link_user_bins() -> Result<()> {
                     .unwrap()
                     .to_str()
                     .unwrap();
-                let name_stripped = file_name.strip_suffix(".rs").unwrap().to_string();
-                // filter the rust file with prefix 'test'
-                if let Some(ch) = option_env!("TEST") {
-                    if ch.len() == 1 && ch.chars().into_iter().all(|c| c.is_numeric()) &&
-                        (name_stripped.starts_with(("test".to_string() + ch).as_str()) || 
-                        name_stripped.starts_with(("ch".to_string() + ch).as_str())) {
-                        return Some(name_stripped);
-                    }
-                }
-                if name_stripped.starts_with("test") || name_stripped.starts_with("ch") {
-                    return None;
-                }
-                // If we don't set TEST env option, we will not contain any bin files except a symbol file.
-                return Some(name_stripped);
+                return Some(file_name.strip_suffix(".bin").unwrap().to_string());
             }
             None
         })

@@ -39,7 +39,7 @@ endif
 
 elf:
 	@echo $(ELFS)
-	@if [ ${CHAPTER} -gt 3 ]; then \
+	@if [ ${CHAPTER} -ne 3 ]; then \
 		cargo build $(MODE_ARG);\
 	else \
 		CHAPTER=$(CHAPTER) python3 build.py ;\

@@ -12,6 +12,7 @@ mod lang_items;
 pub mod syscall;
 
 pub use console::{STDOUT};
+pub use syscall::*;
 
 #[no_mangle]
 #[link_section = ".text.entry"]
@@ -40,7 +41,18 @@ fn main() -> i32 {
     panic!("Cannot find main!");
 }
 
-use syscall::*;
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct TimeVal {
+    pub sec: usize,
+    pub usec: usize,
+}
+
+impl TimeVal {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
 
 pub fn write(fd: usize, buffer: &[u8]) -> isize {
     sys_write(fd, buffer)
@@ -55,7 +67,18 @@ pub fn yield_() -> isize {
 }
 
 pub fn get_time() -> isize {
-    sys_get_time()
+    let time = TimeVal::new();
+    match sys_get_time(&time, 0) {
+        0 => ((time.sec & 0xffff) * 1000 + time.usec / 1000) as isize,
+        _ => -1,
+    }
+}
+
+pub fn sleep(period_ms: usize) {
+    let start = get_time();
+    while get_time() < start + period_ms as isize {
+        sys_yield();
+    }
 }
 
 pub fn test_runner(_test: &[&dyn Fn()]) {

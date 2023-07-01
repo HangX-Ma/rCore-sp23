@@ -5,8 +5,9 @@ step = 0x20000
 linker = 'src/linker.ld'
 
 app_id = 0
-apps = os.listdir('src/bin')
+apps = os.listdir('build/app')
 apps.sort()
+chapter = os.getenv("CHAPTER")
 for app in apps:
     app = app[:app.find('.')]
     lines = []
@@ -22,4 +23,5 @@ for app in apps:
     print('[build.py] application %s start with address %s' %(app, hex(base_address+step*app_id)))
     with open(linker, 'w+') as f:
         f.writelines(lines_before)
-    app_id = app_id + 1
+    if chapter == '3':
+        app_id = app_id + 1

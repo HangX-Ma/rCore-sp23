@@ -30,7 +30,7 @@ TEST ?= 0
 # run
 KERNEL_ENTRY_PA := 0x80200000
 
-QEMU_ARGS		:= -machine virt \
+QEMU_ARGS		:= -machine virt,dumpdtb=dump.dtb \
 					-nographic \
 					-bios $(BOOTLOADER) \
 					-device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA)

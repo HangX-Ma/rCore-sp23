@@ -73,9 +73,9 @@ pub extern "C" fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
             exit_current_and_run_next();
         }
         Trap::Exception(Exception::IllegalInstruction) => {
-            println!("[kernel] IllegalInstruction in application, kernel killed it.");
+            println!("[kernel] IllegalInstruction in application, core dumped.");
             // stats_clear_and_print(); // lab2-pro3
-            suspend_current_and_run_next();
+            exit_current_and_run_next();
         }
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
             set_next_trigger();

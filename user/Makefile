@@ -6,8 +6,8 @@ TARGET_DIR 	:= target/$(TARGET)/$(MODE)
 BUILD_DIR 	:= build
 
 BASE ?= 0
-CHAPTER ?= 0
-TEST ?= $(CHAPTER)
+TEST ?= 0
+CHAPTER ?= $(TEST)
 
 ifeq ($(TEST), 0) # No test, deprecated, previously used in v3
         APPS :=  $(filter-out $(wildcard $(APP_DIR)/ch*.rs), $(wildcard $(APP_DIR)/*.rs))
@@ -39,10 +39,10 @@ endif
 
 elf:
 	@echo $(ELFS)
-	@if [ ${CHAPTER} -ne 3 ]; then \
+	@if [ ${TEST} -ne 3 ]; then \
 		cargo build $(MODE_ARG);\
 	else \
-		CHAPTER=$(CHAPTER) python3 build.py ;\
+		CHAPTER=$(TEST) python3 build.py ;\
 	fi
 
 binary: elf

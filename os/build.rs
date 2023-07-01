@@ -26,13 +26,15 @@ fn link_user_bins() -> Result<()> {
                 // filter the rust file with prefix 'test'
                 if let Some(ch) = option_env!("TEST") {
                     if ch.len() == 1 && ch.chars().into_iter().all(|c| c.is_numeric()) &&
-                        name_stripped.starts_with(("test".to_string() + ch).as_str()) {
+                        (name_stripped.starts_with(("test".to_string() + ch).as_str()) || 
+                        name_stripped.starts_with(("ch".to_string() + ch).as_str())) {
                         return Some(name_stripped);
                     }
                 }
-                if name_stripped.starts_with("test") {
+                if name_stripped.starts_with("test") || name_stripped.starts_with("ch") {
                     return None;
                 }
+                // If we don't set TEST env option, we will not contain any bin files except a symbol file.
                 return Some(name_stripped);
             }
             None

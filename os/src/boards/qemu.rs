@@ -1,6 +1,8 @@
 //ref:: https://github.com/andre-richter/qemu-exit
 use core::arch::asm;
 
+pub const CLOCK_FREQ: usize = 12500000;
+
 const EXIT_SUCCESS: u32 = 0x5555; // Equals `exit(0)`. qemu successful exit
 
 const EXIT_FAILURE_FLAG: u32 = 0x3333;

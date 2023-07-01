@@ -12,13 +12,16 @@ mod board;
 
 #[macro_use]
 pub mod console;
+mod config;
 mod lang_items;
+mod loader;
 mod logging;
 mod sbi;
 mod sync;
 pub mod syscall;
+pub mod task;
 pub mod trap;
-mod batch;
+mod timer;
 // ch2-problems
 mod stack_btrace;
 
@@ -81,14 +84,12 @@ fn rust_main() {
         boot_stack_top as usize, boot_stack_lower_bound as usize);
 
     println!("Hello, world!");
-
-    // ch2 basic
     trap::init();
-    batch::init();
-    batch::run_next_app();
-
-    // #[cfg(test)]
-    // test_main();
+    loader::load_apps();
+    trap::enable_timer_interrupt();
+    timer::set_next_trigger();
+    task::run_first_task();
+    panic!("Unreachable in rust_main!");
 }
 
 #[cfg(test)] // ensure this function only runs in test scenario

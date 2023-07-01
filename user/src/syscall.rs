@@ -3,6 +3,10 @@ use core::arch::asm;
 
 const SYSCALL_WRITE: usize = 64;
 const SYSCALL_EXIT: usize = 93;
+const SYSCALL_YIELD: usize = 124;
+const SYSCALL_GET_TIME: usize = 169;
+
+
 
 fn syscall(which: usize, args: [usize; 3]) -> isize {
     let mut ret: isize;
@@ -34,4 +38,15 @@ pub fn sys_write(fd: usize, buffer: &[u8]) -> isize {
 /// syscall ID: 93
 pub fn sys_exit(xstate: i32) -> isize {
     syscall(SYSCALL_EXIT, [xstate as usize, 0, 0])
+}
+
+/// 功能：应用主动交出 CPU 所有权并切换到其他应用。
+/// 返回值：总是返回 0。
+/// syscall ID：124
+pub fn sys_yield() -> isize {
+    syscall(SYSCALL_YIELD, [0, 0, 0])
+}
+
+pub fn sys_get_time() -> isize {
+    syscall(SYSCALL_GET_TIME, [0, 0, 0])
 }

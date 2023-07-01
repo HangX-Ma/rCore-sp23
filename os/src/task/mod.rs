@@ -21,7 +21,7 @@ use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
 use lazy_static::*;
 use switch::__switch;
-use task::{TaskControlBlock, TaskStatus};
+pub use task::{TaskControlBlock, TaskStatus};
 
 pub use context::TaskContext;
 
@@ -138,6 +138,15 @@ impl TaskManager {
             shutdown(false);
         }
     }
+
+    fn get_current_task_id(&self) -> usize {
+        let inner = self.inner.exclusive_access();
+        return inner.current_task;
+    }
+
+    fn get_total_task_num(&self) -> usize {
+        return self.num_app;
+    }
 }
 
 /// run first task
@@ -170,4 +179,15 @@ pub fn suspend_current_and_run_next() {
 pub fn exit_current_and_run_next() {
     mark_current_exited();
     run_next_task();
+}
+
+// lab3
+/// get current running task id
+pub fn get_current_task_id() -> usize {
+    TASK_MANAGER.get_current_task_id()
+}
+
+/// get total task number
+pub fn get_total_task_num() -> usize {
+    TASK_MANAGER.get_total_task_num()
 }

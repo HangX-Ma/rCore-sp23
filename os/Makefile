@@ -24,13 +24,19 @@ endif
 
 # Disassembly
 DISASM ?= -x
+DUMP_DTB ?= false
 
+BASE ?= 0
 TEST ?= 0
+
+ifeq ($(DUMP_DTB), true)
+	DUMP_DTB_ARG := ,dumpdtb=dump.dtb
+endif
 
 # run
 KERNEL_ENTRY_PA := 0x80200000
 
-QEMU_ARGS		:= -machine virt,dumpdtb=dump.dtb \
+QEMU_ARGS		:= -machine virt$(DUMP_DTB_ARG)\
 					-nographic \
 					-bios $(BOOTLOADER) \
 					-device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA)
@@ -47,7 +53,7 @@ $(KERNEL_BIN): kernel
 	@$(OBJCOPY) $(KERNEL_ELF) --strip-all -O binary $@
 
 kernel:
-	@cd ../user && make build TEST=$(TEST)
+	@cd ../user && make build TEST=$(TEST) BASE=$(BASE)
 	@echo Running platform: $(BOARD)
 	@cp src/linker-$(BOARD).ld src/linker.ld
 	@cargo build $(MODE_ARG)

@@ -15,8 +15,6 @@ mod switch;
 #[allow(clippy::module_inception)]
 mod task;
 
-use core::num;
-
 use crate::config::MAX_APP_NUM;
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sbi::shutdown;
@@ -26,6 +24,7 @@ use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus};
 
 pub use context::TaskContext;
+pub use crate::timer::get_time_ms;
 
 /// The task manager, where all the tasks are managed.
 ///
@@ -51,6 +50,18 @@ pub struct TaskManagerInner {
     current_task: usize,
     /// the number of tasks that have not exit
     alive_task_num: usize,
+    /// record time point
+    checkpoint: usize,
+}
+
+/// ch3-pro2
+impl TaskManagerInner {
+    /// update checkpoint and return the diff time
+    fn update_checkpoint(&mut self) -> usize {
+        let prev_point = self.checkpoint;
+        self.checkpoint = get_time_ms();
+        return self.checkpoint - prev_point;
+    }
 }
 
 lazy_static! {
@@ -60,6 +71,8 @@ lazy_static! {
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
+            user_time: 0,
+            kernel_time: 0,
         }; MAX_APP_NUM];
         for (i, task) in tasks.iter_mut().enumerate() {
             task.task_cx = TaskContext::goto_restore(init_app_cx(i));
@@ -71,7 +84,8 @@ lazy_static! {
                 UPSafeCell::new(TaskManagerInner {
                     tasks,
                     current_task: 0,
-                    alive_task_num: num_app
+                    alive_task_num: num_app,
+                    checkpoint: 0,
                 })
             },
         }
@@ -88,6 +102,7 @@ impl TaskManager {
         let task0 = &mut inner.tasks[0];
         task0.task_status = TaskStatus::Running;
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
+        inner.update_checkpoint();
         drop(inner);
         let mut _unused = TaskContext::zero_init();
         // before this, we should drop local variables that must be dropped manually
@@ -105,6 +120,8 @@ impl TaskManager {
         if inner.alive_task_num > 1 {
             println!("[kernel] task {} suspended", current);
         }
+        // ch3-pro2
+        inner.tasks[current].kernel_time += inner.update_checkpoint();
         inner.tasks[current].task_status = TaskStatus::Ready;
     }
 
@@ -112,8 +129,10 @@ impl TaskManager {
     fn mark_current_exited(&self) {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
-        // ch3-pro1
-        println!("[kernel] task {} exited", current);
+        // ch3-pro1, 2
+        inner.tasks[current].kernel_time += inner.update_checkpoint();
+        println!("[kernel] task {} exited, total cost in kernel/user {}/{} ms",
+            current, inner.tasks[current].kernel_time, inner.tasks[current].user_time);
         inner.tasks[current].task_status = TaskStatus::Exited;
         inner.alive_task_num -= 1;
     }
@@ -155,6 +174,22 @@ impl TaskManager {
         }
     }
 
+    // ch3-pro2 start
+    /// record the kernel time, now start to record the user time
+    pub fn user_time_start(&self) {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].kernel_time += inner.update_checkpoint();
+    }
+
+    /// record the user time, now start to record the kernel time
+    pub fn user_time_end(&self) {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].user_time += inner.update_checkpoint();
+    }
+    // ch3-pro2 end
+
     fn get_current_task_id(&self) -> usize {
         let inner = self.inner.exclusive_access();
         return inner.current_task;
@@ -195,6 +230,15 @@ pub fn suspend_current_and_run_next() {
 pub fn exit_current_and_run_next() {
     mark_current_exited();
     run_next_task();
+}
+
+// ch3-pro2
+pub fn user_time_start() {
+    TASK_MANAGER.user_time_start();
+}
+
+pub fn user_time_end() {
+    TASK_MANAGER.user_time_end();
 }
 
 // lab3

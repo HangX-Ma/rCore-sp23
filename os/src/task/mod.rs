@@ -15,6 +15,8 @@ mod switch;
 #[allow(clippy::module_inception)]
 mod task;
 
+use core::num;
+
 use crate::config::MAX_APP_NUM;
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sbi::shutdown;
@@ -47,6 +49,8 @@ pub struct TaskManagerInner {
     tasks: [TaskControlBlock; MAX_APP_NUM],
     /// id of current `Running` task
     current_task: usize,
+    /// the number of tasks that have not exit
+    alive_task_num: usize,
 }
 
 lazy_static! {
@@ -67,6 +71,7 @@ lazy_static! {
                 UPSafeCell::new(TaskManagerInner {
                     tasks,
                     current_task: 0,
+                    alive_task_num: num_app
                 })
             },
         }
@@ -97,7 +102,9 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
         // ch3-pro1
-        // println!("[kernel] task {} suspended", current);
+        if inner.alive_task_num > 1 {
+            println!("[kernel] task {} suspended", current);
+        }
         inner.tasks[current].task_status = TaskStatus::Ready;
     }
 
@@ -108,6 +115,7 @@ impl TaskManager {
         // ch3-pro1
         println!("[kernel] task {} exited", current);
         inner.tasks[current].task_status = TaskStatus::Exited;
+        inner.alive_task_num -= 1;
     }
 
     /// Find next task to run and return task id.

@@ -96,6 +96,8 @@ impl TaskManager {
     fn mark_current_suspended(&self) {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
+        // ch3-pro1
+        // println!("[kernel] task {} suspended", current);
         inner.tasks[current].task_status = TaskStatus::Ready;
     }
 
@@ -103,6 +105,8 @@ impl TaskManager {
     fn mark_current_exited(&self) {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
+        // ch3-pro1
+        println!("[kernel] task {} exited", current);
         inner.tasks[current].task_status = TaskStatus::Exited;
     }
 
@@ -129,8 +133,12 @@ impl TaskManager {
             let next_task_cx_ptr = &inner.tasks[next].task_cx as *const TaskContext;
             drop(inner);
             // before this, we should drop local variables that must be dropped manually
-            unsafe {
-                __switch(current_task_cx_ptr, next_task_cx_ptr);
+            // ch3-pro1
+            if current != next {
+                println!("[kernel] task switch from {} to {}", current, next);
+                unsafe {
+                    __switch(current_task_cx_ptr, next_task_cx_ptr);
+                }
             }
             // go back to user mode
         } else {

@@ -22,6 +22,7 @@ use crate::task::{
     user_time_end,
 };
 use crate::timer::set_next_trigger;
+use crate::task::update_task_syscall_times;
 // use crate::syscall::stats*; // ch2-pro3
 use core::arch::{global_asm, asm};
 use riscv::register::{
@@ -58,6 +59,7 @@ pub extern "C" fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
     match scause.cause() {
         Trap::Exception(Exception::UserEnvCall) => {
             let syscall_id = cx.x[17];
+            update_task_syscall_times(syscall_id);
             // stats_update(syscall_id); // ch2-pro3
             cx.sepc += 4;
             cx.x[10] = syscall(syscall_id, [cx.x[10], cx.x[11], cx.x[12]]) as usize;

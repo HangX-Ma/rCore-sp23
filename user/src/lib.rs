@@ -54,6 +54,36 @@ impl TimeVal {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum TaskStatus {
+    UnInit,
+    Ready,
+    Running,
+    Exited,
+}
+
+const MAX_SYSCALL_NUM: usize = 500;
+#[repr(C)]
+#[derive(Debug)]
+pub struct TaskInfo {
+    /// Task status in it's life cycle
+    pub status: TaskStatus,
+    /// The numbers of syscall called by task
+    pub syscall_times: [u32; MAX_SYSCALL_NUM],
+    /// Total running time of task, which consists of kernel time and user time
+    pub time: usize,
+}
+
+impl TaskInfo {
+    pub fn new() -> Self {
+        TaskInfo {
+            status: TaskStatus::UnInit,
+            syscall_times: [0; MAX_SYSCALL_NUM],
+            time: 0,
+        }
+    }
+}
+
 pub fn write(fd: usize, buffer: &[u8]) -> isize {
     sys_write(fd, buffer)
 }
@@ -79,6 +109,10 @@ pub fn sleep(period_ms: usize) {
     while get_time() < start + period_ms as isize {
         sys_yield();
     }
+}
+
+pub fn task_info(ti: &TaskInfo) -> isize {
+    sys_task_info(ti)
 }
 
 pub fn test_runner(_test: &[&dyn Fn()]) {

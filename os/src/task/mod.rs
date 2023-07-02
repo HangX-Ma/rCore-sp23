@@ -15,7 +15,7 @@ mod switch;
 #[allow(clippy::module_inception)]
 mod task;
 
-use crate::config::MAX_APP_NUM;
+use crate::config::{MAX_APP_NUM, MAX_SYSCALL_NUM};
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
@@ -24,7 +24,7 @@ use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus};
 
 pub use context::TaskContext;
-pub use crate::timer::get_time_ms;
+pub use crate::timer::{get_time_ms, get_time_us};
 
 /// The task manager, where all the tasks are managed.
 ///
@@ -71,6 +71,7 @@ lazy_static! {
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
+            syscall_times: [0; MAX_SYSCALL_NUM],
             user_time: 0,
             kernel_time: 0,
         }; MAX_APP_NUM];
@@ -117,9 +118,9 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
         // ch3-pro1
-        if inner.alive_task_num > 1 {
-            println!("[kernel] task {} suspended", current);
-        }
+        // if inner.alive_task_num > 1 {
+            // println!("[kernel] task {} suspended", current);
+        // }
         // ch3-pro2
         inner.tasks[current].kernel_time += inner.update_checkpoint();
         inner.tasks[current].task_status = TaskStatus::Ready;
@@ -162,7 +163,7 @@ impl TaskManager {
             // before this, we should drop local variables that must be dropped manually
             // ch3-pro1
             if current != next {
-                println!("[kernel] task switch from {} to {}", current, next);
+                // println!("[kernel] task switch from {} to {}", current, next);
                 unsafe {
                     __switch(current_task_cx_ptr, next_task_cx_ptr);
                 }
@@ -189,15 +190,6 @@ impl TaskManager {
         inner.tasks[current].user_time += inner.update_checkpoint();
     }
     // ch3-pro2 end
-
-    fn get_current_task_id(&self) -> usize {
-        let inner = self.inner.exclusive_access();
-        return inner.current_task;
-    }
-
-    fn get_total_task_num(&self) -> usize {
-        return self.num_app;
-    }
 }
 
 /// run first task
@@ -242,12 +234,19 @@ pub fn user_time_end() {
 }
 
 // lab3
-/// get current running task id
-pub fn get_current_task_id() -> usize {
-    TASK_MANAGER.get_current_task_id()
+pub fn get_current_task_block() -> TaskControlBlock {
+    let inner = TASK_MANAGER.inner.exclusive_access();
+    let current = inner.current_task;
+    inner.tasks[current].clone()
 }
 
-/// get total task number
-pub fn get_total_task_num() -> usize {
-    TASK_MANAGER.get_total_task_num()
+pub fn update_task_syscall_times(syscall_id: usize) {
+    let mut inner = TASK_MANAGER.inner.exclusive_access();
+    let current = inner.current_task;
+    inner.tasks[current].syscall_times[syscall_id] += 1;
+}
+
+pub fn get_current_task() -> usize {
+    let inner = TASK_MANAGER.inner.exclusive_access();
+    inner.current_task
 }

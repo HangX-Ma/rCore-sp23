@@ -1,21 +1,13 @@
 //! App management syscalls
-use core::time;
-
 // use super::stats::*; // lab2-pro3
 use crate::task::{
     exit_current_and_run_next, 
     suspend_current_and_run_next,
     TaskStatus,
-    get_current_task_id,
-    get_total_task_num,
+    get_current_task_block,
 };
 use crate::config::MAX_SYSCALL_NUM;
-use crate::timer::{
-    get_time_ms,
-    get_time_us
-};
-use crate::sync::UPSafeCell;
-use lazy_static::*;
+use crate::timer::{get_time_us};
 
 #[repr(C)]
 #[derive(Debug)]
@@ -24,11 +16,9 @@ pub struct TimeVal {
     pub usec: usize,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy)]
 pub struct TaskInfo {
-    inner: UPSafeCell<TaskInfoInner>,
-}
-
-pub struct TaskInfoInner {
     /// Task status in it's life cycle
     status: TaskStatus,
     /// The numbers of syscall called by task
@@ -36,30 +26,6 @@ pub struct TaskInfoInner {
     /// Total running time of task, which consists of kernel time and user time
     time: usize,
 }
-
-lazy_static!(
-    static ref TASK_INFO: TaskInfo = TaskInfo::new();
-);
-
-impl TaskInfo {
-    fn new() -> Self {
-        TaskInfo {
-            inner: unsafe {
-                UPSafeCell::new(TaskInfoInner {
-                    status: TaskStatus::UnInit,
-                    syscall_times: [0; MAX_SYSCALL_NUM],
-                    time: 0,
-                })
-            }
-        }
-    }
-
-    pub fn update(&self, syscall_id: usize) {
-        let mut inner = self.inner.exclusive_access();
-        inner.status = TaskStatus::Running; // keep it running because current task always running
-        inner.syscall_times[syscall_id] += 1;
-    }
-} 
 
 /// task exits and submit an exit code
 pub fn sys_exit(exit_code: i32) -> ! {
@@ -91,7 +57,15 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
 }
 
 pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
-
-    -1
+    let task_block = get_current_task_block();
+    // println!("[kernel]: time {} syscall_time {}", task_block.kernel_time + task_block.user_time, task_block.syscall_times[SYSCALL_GET_TIME]);
+    unsafe {
+        *ti = TaskInfo {
+            status: task_block.task_status,
+            syscall_times: task_block.syscall_times,
+            time: task_block.kernel_time + task_block.user_time,
+        };
+    }
+    0
 }
 

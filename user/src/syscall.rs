@@ -1,11 +1,12 @@
 // user/src/syscall.rs
 use core::arch::asm;
-use super::{TimeVal};
+use super::{TimeVal, TaskInfo};
 
 pub const SYSCALL_WRITE: usize = 64;
 pub const SYSCALL_EXIT: usize = 93;
 pub const SYSCALL_YIELD: usize = 124;
 pub const SYSCALL_GET_TIME: usize = 169;
+pub const SYSCALL_TASK_INFO: usize = 410;
 
 
 fn syscall(which: usize, args: [usize; 3]) -> isize {
@@ -52,4 +53,11 @@ pub fn sys_yield() -> isize {
 /// syscall ID：169
 pub fn sys_get_time(time: &TimeVal, tz: usize) -> isize {
     syscall(SYSCALL_GET_TIME, [time as *const _ as usize, tz, 0])
+}
+
+/// 功能： 获取当前的 task 的相关信息， 包括运行时长， 状态， 以及调用的 syscall 次数
+/// 返回值：返回是否执行成功，成功则返回 0
+/// syscall ID：410
+pub fn sys_task_info(ti: &TaskInfo) -> isize {
+    syscall(SYSCALL_TASK_INFO, [ti as *const _ as usize, 0, 0])
 }

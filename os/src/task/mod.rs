@@ -20,11 +20,17 @@ use crate::loader::{get_num_app, init_app_cx};
 use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
 use lazy_static::*;
-use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus};
-
 pub use context::TaskContext;
 pub use crate::timer::{get_time_ms, get_time_us};
+
+pub static mut SWITCH_TASK_COST: usize = 0;
+
+pub unsafe fn __switch(current_task_cx_ptr: *mut TaskContext, next_task_cx_ptr: *const TaskContext) {
+    let start = get_time_us();
+    switch::__switch(current_task_cx_ptr, next_task_cx_ptr);
+    SWITCH_TASK_COST += get_time_us() - start;
+}
 
 /// The task manager, where all the tasks are managed.
 ///
@@ -132,8 +138,10 @@ impl TaskManager {
         let current = inner.current_task;
         // ch3-pro1, 2
         inner.tasks[current].kernel_time += inner.update_checkpoint();
-        println!("[kernel] task {} exited, total cost in kernel/user {}/{} ms",
-            current, inner.tasks[current].kernel_time, inner.tasks[current].user_time);
+        unsafe {
+            println!("[kernel] task {} exited, total cost in kernel/user {}/{} ms, context switch cost {} ms",
+                current, inner.tasks[current].kernel_time, inner.tasks[current].user_time, SWITCH_TASK_COST/1000);
+        }
         inner.tasks[current].task_status = TaskStatus::Exited;
         inner.alive_task_num -= 1;
     }

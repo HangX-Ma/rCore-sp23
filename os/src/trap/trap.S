@@ -59,3 +59,9 @@ __restore:
     # now sp->kernel stack, sscratch->user stack
     csrrw sp, sscratch, sp
     sret
+
+__pre_restore:
+    mv a0, sp
+    call switch_cost
+    mv sp, a0
+    j __restore

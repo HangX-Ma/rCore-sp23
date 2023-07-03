@@ -21,8 +21,14 @@ use crate::task::{
     user_time_start,
     user_time_end,
 };
-use crate::timer::set_next_trigger;
-use crate::task::update_task_syscall_times;
+use crate::timer::{
+    set_next_trigger,
+    get_time_us,
+};
+use crate::task::{
+    update_task_syscall_times,
+    SWITCH_TASK_START,
+};
 // use crate::syscall::stats*; // ch2-pro3
 use core::arch::{global_asm, asm};
 use riscv::register::{
@@ -48,6 +54,12 @@ pub fn enable_timer_interrupt() {
     unsafe {
         sie::set_stimer();
     }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn switch_cost (cx: &mut TrapContext) -> &mut TrapContext {
+    crate::task::update_switch_cost(get_time_us() - SWITCH_TASK_START); 
+    cx
 }
 
 #[no_mangle]

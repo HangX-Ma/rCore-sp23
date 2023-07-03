@@ -24,12 +24,11 @@ pub use task::{TaskControlBlock, TaskStatus};
 pub use context::TaskContext;
 pub use crate::timer::{get_time_ms, get_time_us};
 
-pub static mut SWITCH_TASK_COST: usize = 0;
+pub static mut SWITCH_TASK_START: usize = 0;
 
 pub unsafe fn __switch(current_task_cx_ptr: *mut TaskContext, next_task_cx_ptr: *const TaskContext) {
-    let start = get_time_us();
+    SWITCH_TASK_START = get_time_us();
     switch::__switch(current_task_cx_ptr, next_task_cx_ptr);
-    SWITCH_TASK_COST += get_time_us() - start;
 }
 
 /// The task manager, where all the tasks are managed.
@@ -78,6 +77,7 @@ lazy_static! {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
             syscall_times: [0; MAX_SYSCALL_NUM],
+            switch_time: 0,
             user_time: 0,
             kernel_time: 0,
         }; MAX_APP_NUM];
@@ -138,10 +138,8 @@ impl TaskManager {
         let current = inner.current_task;
         // ch3-pro1, 2
         inner.tasks[current].kernel_time += inner.update_checkpoint();
-        unsafe {
-            println!("[kernel] task {} exited, total cost in kernel/user {}/{} ms, context switch cost {} ms",
-                current, inner.tasks[current].kernel_time, inner.tasks[current].user_time, SWITCH_TASK_COST/1000);
-        }
+        println!("[kernel] task {} exited, total cost in kernel/user {}/{} ms, context switch cost {} us",
+            current, inner.tasks[current].kernel_time, inner.tasks[current].user_time, inner.tasks[current].switch_time);
         inner.tasks[current].task_status = TaskStatus::Exited;
         inner.alive_task_num -= 1;
     }
@@ -245,13 +243,19 @@ pub fn user_time_end() {
 pub fn get_current_task_block() -> TaskControlBlock {
     let inner = TASK_MANAGER.inner.exclusive_access();
     let current = inner.current_task;
-    inner.tasks[current].clone()
+    inner.tasks[current]
 }
 
 pub fn update_task_syscall_times(syscall_id: usize) {
     let mut inner = TASK_MANAGER.inner.exclusive_access();
     let current = inner.current_task;
     inner.tasks[current].syscall_times[syscall_id] += 1;
+}
+
+pub fn update_switch_cost(cost: usize) {
+    let mut inner = TASK_MANAGER.inner.exclusive_access();
+    let current = inner.current_task;
+    inner.tasks[current].switch_time += cost;
 }
 
 pub fn get_current_task() -> usize {

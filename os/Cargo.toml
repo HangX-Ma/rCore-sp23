@@ -11,6 +11,7 @@ log = "0.4.19"
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 riscv = { git = "https://github.com/rcore-os/riscv", features = ["inline-asm"] }
 sbi-rt = { version = "0.0.2", features = ["legacy"] }
+buddy_system_allocator = "0.6"
 # fixedstr = { version = "0.4.0", default-features = false}
 # hashbrown = { version = "0.14.0"}
 

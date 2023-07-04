@@ -1,6 +1,7 @@
 #![no_std] // tell rustc not use the standard library
 #![no_main] // the simplest way to disable the 'start' program to initialize env
 #![feature(panic_info_message)]
+#![feature(alloc_error_handler)]
 #![feature(strict_provenance)]
 // customized tests
 #![reexport_test_harness_main = "test_main"] // help us create new `main` entry for test
@@ -10,11 +11,14 @@
 #[path = "boards/qemu.rs"]
 mod board;
 
+extern crate alloc;
+
 #[macro_use]
 pub mod console;
 mod config;
 mod lang_items;
 mod loader;
+mod mm;
 mod logging;
 mod sbi;
 mod sync;
@@ -84,11 +88,13 @@ fn rust_main() {
         boot_stack_top as usize, boot_stack_lower_bound as usize);
 
     println!("Hello, world!");
-    trap::init();
-    loader::load_apps();
-    trap::enable_timer_interrupt();
-    timer::set_next_trigger();
-    task::run_first_task();
+    mm::init();
+    crate::mm::heap_test();
+    // trap::init();
+    // loader::load_apps();
+    // trap::enable_timer_interrupt();
+    // timer::set_next_trigger();
+    // task::run_first_task();
     panic!("Unreachable in rust_main!");
 }
 

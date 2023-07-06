@@ -1,6 +1,5 @@
 //! App management syscalls
 
-// use super::stats::*; // lab2-pro3
 use crate::task::{
     change_program_brk,
     exit_current_and_run_next, 
@@ -37,7 +36,6 @@ pub struct TaskInfo {
 /// task exits and submit an exit code
 pub fn sys_exit(exit_code: i32) -> ! {
     println!("[kernel] Application exited with code {}", exit_code);
-    // stats_clear_and_print(); // lab2-pro3
     exit_current_and_run_next();
     panic!("Unreachable in sys_exit!");
 }

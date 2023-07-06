@@ -19,7 +19,6 @@ pub const SYSCALL_SBRK: usize = 214;
 
 mod fs;
 mod process;
-pub mod stats;
 
 use fs::*;
 use process::*;

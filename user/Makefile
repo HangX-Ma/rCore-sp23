@@ -35,6 +35,7 @@ ifeq ($(MODE), release)
 endif
 
 elf:
+	@echo $(ELFS)
 	@cargo build $(MODE_ARG)
 
 binary: elf

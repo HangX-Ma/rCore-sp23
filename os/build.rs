@@ -12,19 +12,12 @@ fn main() {
 
 fn link_user_bins() -> Result<()> {
     let mut f = File::create("src/link_app.S")?;
-    let mut apps: Vec<String> = read_dir("../user/build/bin")?
+    let mut apps: Vec<String> = read_dir("../user/build/elf")?
         .into_iter()
-        .filter_map(|entry| {
-            let entry = entry.unwrap();
-            let path = entry.path();
-            if path.is_file() {
-                let file_name = path.file_name()
-                    .unwrap()
-                    .to_str()
-                    .unwrap();
-                return Some(file_name.strip_suffix(".bin").unwrap().to_string());
-            }
-            None
+        .map(|dir_entry| {
+            let mut name_with_ext = dir_entry.unwrap().file_name().into_string().unwrap();
+            name_with_ext.drain(name_with_ext.find('.').unwrap()..name_with_ext.len());
+            name_with_ext
         })
         .collect();
     // sort bin files alphabetically 
@@ -36,32 +29,36 @@ fn link_user_bins() -> Result<()> {
         return Ok(());
     }
 
-    writeln!(f, 
+    writeln!(
+        f,
         r#"
     .align 3
     .section .data
     .global _num_app
 _num_app:
     .quad {}"#,
-    apps_size)?;
+        apps.len()
+    )?;
 
-    for idx in 0..=apps_size {
-        if idx != apps_size {
-            writeln!(f,r#"    .quad app_{}_start"#, idx).unwrap();
-        } else {
-            writeln!(f,r#"    .quad app_{}_end"#, idx - 1).unwrap();
-        }
+    for i in 0..apps.len() {
+        writeln!(f, r#"    .quad app_{}_start"#, i)?;
     }
+    writeln!(f, r#"    .quad app_{}_end"#, apps.len() - 1)?;
 
-    for idx in 0..apps_size {
-        writeln!(f, r#"
+    for (idx, app) in apps.iter().enumerate() {
+        println!("app_{}: {}", idx, app);
+        writeln!(
+            f,
+            r#"
     .section .data
     .global app_{0}_start
     .global app_{0}_end
+    .align 3
 app_{0}_start:
-    .incbin "{1}{2}.bin"
-app_{0}_end:"#, idx, TARGET, apps.get(idx).unwrap())?;
+    .incbin "{2}{1}"
+app_{0}_end:"#,
+            idx, app, TARGET
+        )?;
     }
-
     Ok(())
 }

@@ -6,8 +6,10 @@ use crate::task::{
     exit_current_and_run_next, 
     suspend_current_and_run_next,
     TaskStatus,
-    current_user_token,
-    // get_current_task_block,
+    current_user_token, 
+    get_current_task_status, 
+    get_current_task_syscall_times, 
+    get_current_task_time_cost,
 };
 
 use crate::config::MAX_SYSCALL_NUM;
@@ -46,10 +48,6 @@ pub fn sys_yield() -> isize {
     0
 }
 
-// pub fn sys_get_time() -> isize {
-//     get_time_ms() as isize
-// }
-
 pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
     let us = get_time_us();
     let dst_vec = translated_byte_buffer(
@@ -73,18 +71,29 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
     0
 }
 
-// pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
-//     let task_block = get_current_task_block();
-//     // println!("[kernel]: time {} syscall_time {}", task_block.kernel_time + task_block.user_time, task_block.syscall_times[SYSCALL_GET_TIME]);
-//     unsafe {
-//         *ti = TaskInfo {
-//             status: task_block.task_status,
-//             // syscall_times: task_block.syscall_times,
-//             time: task_block.kernel_time + task_block.user_time,
-//         };
-//     }
-//     0
-// }
+pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
+    let dst_vec = translated_byte_buffer(
+        current_user_token(),
+        ti as *const u8, core::mem::size_of::<TaskInfo>()
+    );
+    let ref task_info = TaskInfo {
+        status: get_current_task_status(),
+        syscall_times: get_current_task_syscall_times(),
+        time: get_current_task_time_cost(),
+    };
+    // println!("[kernel]: time {} syscall_time {}", task_info.time, task_info.syscall_times[super::SYSCALL_GET_TIME]);
+    let src_ptr = task_info as *const TaskInfo;
+    for (idx, dst) in dst_vec.into_iter().enumerate() {
+        let unit_len = dst.len();
+        unsafe {
+            dst.copy_from_slice(core::slice::from_raw_parts(
+                src_ptr.wrapping_byte_add(idx * unit_len) as *const u8,
+                unit_len)
+            );
+        }
+    }
+    0
+}
 
 /// change data segment size
 pub fn sys_sbrk(size: i32) -> isize {
@@ -94,4 +103,3 @@ pub fn sys_sbrk(size: i32) -> isize {
         -1
     }
 }
-

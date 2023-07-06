@@ -24,14 +24,12 @@ use crate::task::{
     user_time_start,
     user_time_end,
 };
+
 use crate::timer::{
     set_next_trigger,
-    get_time_us,
 };
-use crate::task::{
-    // update_task_syscall_times,
-    // SWITCH_TASK_START,
-};
+
+use crate::task::update_task_syscall_times;
 // use crate::syscall::stats*; // ch2-pro3
 use core::arch::{global_asm, asm};
 use riscv::register::{
@@ -76,7 +74,7 @@ pub fn enable_timer_interrupt() {
 #[no_mangle]
 /// handle an interrupt, exception, or system call from user space
 pub extern "C" fn trap_handler() -> ! {
-    // user_time_start(); //* ch3-pro2
+    user_time_start(); //* ch3-pro2
     set_kernel_trap_entry(); // deal with S Mode trap in kernel
     let cx = current_trap_cx();  // the app's trap context locates in user space not kernel space now
     let scause = scause::read(); // get trap cause
@@ -84,7 +82,7 @@ pub extern "C" fn trap_handler() -> ! {
     match scause.cause() {
         Trap::Exception(Exception::UserEnvCall) => {
             let syscall_id = cx.x[17];
-            // update_task_syscall_times(syscall_id);
+            update_task_syscall_times(syscall_id);
             // stats_update(syscall_id); // ch2-pro3
             cx.sepc += 4;
             cx.x[10] = syscall(syscall_id, [cx.x[10], cx.x[11], cx.x[12]]) as usize;
@@ -122,7 +120,7 @@ pub extern "C" fn trap_handler() -> ! {
             );
         }
     }
-    // user_time_end(); //* ch3-pro2
+    user_time_end(); //* ch3-pro2
     trap_return();
 }
 

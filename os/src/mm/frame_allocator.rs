@@ -103,7 +103,7 @@ impl FrameTracker {
 
 impl Debug for FrameTracker {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!("FrameTracker:PPN={:#x}", self.ppn.0))
+        f.write_fmt(format_args!("FrameTracker: PPN={:#x}", self.ppn.0))
     }
 }
 
@@ -143,6 +143,6 @@ pub fn frame_allocator_test() {
         v.push(frame);
     }
     drop(v);
-    println!("frame_allocator_test passed!");
+    println!("[kernel] frame_allocator_test passed!");
 }
 

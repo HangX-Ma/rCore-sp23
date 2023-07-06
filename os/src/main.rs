@@ -59,9 +59,11 @@ fn rust_main() {
     println!("[kernel] Hello, world!");
     mm::init();
     println!("[kernel] back to world!");
+    // mm tests
     mm::heap_test();
     mm::frame_allocator_test();
     mm::remap_test();
+
     trap::init();
     //trap::enable_interrupt();
     trap::enable_timer_interrupt();

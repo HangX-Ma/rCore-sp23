@@ -9,8 +9,7 @@ use crate::trap::{trap_handler, TrapContext};
 pub struct TaskControlBlock {
     pub task_status: TaskStatus,
     pub task_cx: TaskContext,
-    // pub syscall_times: [u32; MAX_SYSCALL_NUM],
-    // pub switch_time: usize,
+    pub syscall_times: [u32; MAX_SYSCALL_NUM],
     pub user_time: usize,
     pub kernel_time: usize,
     // ch4
@@ -47,6 +46,7 @@ impl TaskControlBlock {
         let task_control_block = Self {
             task_status,
             task_cx: TaskContext::goto_trap_return(kernel_stack_top),
+            syscall_times: [0; MAX_SYSCALL_NUM],
             user_time: 0,
             kernel_time: 0,
             memory_set,

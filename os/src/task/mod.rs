@@ -27,13 +27,6 @@ pub use task::{TaskControlBlock, TaskStatus};
 pub use context::TaskContext;
 pub use crate::timer::{get_time_ms, get_time_us};
 
-// pub static mut SWITCH_TASK_START: usize = 0;
-
-// pub unsafe fn __switch(current_task_cx_ptr: *mut TaskContext, next_task_cx_ptr: *const TaskContext) {
-//     SWITCH_TASK_START = get_time_us();
-//     switch::__switch(current_task_cx_ptr, next_task_cx_ptr);
-// }
-
 /// The task manager, where all the tasks are managed.
 ///
 /// Functions implemented on `TaskManager` deals with all task state transitions
@@ -75,9 +68,8 @@ impl TaskManagerInner {
 lazy_static! {
     /// a `TaskManager` global instance through lazy_static!
     pub static ref TASK_MANAGER: TaskManager = {
-        println!("init TASK_MANAGER");
         let num_app = get_num_app();
-        println!("num_app = {}", num_app);
+        println!("[kernel] Start initializing TASK_MANAGER, num_app: {}", num_app);
         let mut tasks: Vec<TaskControlBlock> = Vec::new();
         for i in 0..num_app {
             tasks.push(TaskControlBlock::new(get_app_data(i), i));
@@ -124,7 +116,7 @@ impl TaskManager {
         // if inner.alive_task_num > 1 {
             // println!("[kernel] task {} suspended", current);
         // }
-        // ch3-pro2
+        //* ch3-pro2
         inner.tasks[current].kernel_time += inner.update_checkpoint();
         inner.tasks[current].task_status = TaskStatus::Ready;
     }
@@ -133,7 +125,7 @@ impl TaskManager {
     fn mark_current_exited(&self) {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
-        // ch3-pro1, 2
+        //* ch3-pro1, 2
         inner.tasks[current].kernel_time += inner.update_checkpoint();
         // println!("[kernel] task {} exited, total cost in kernel/user {}/{} ms, context switch cost {} us",
         //     current, inner.tasks[current].kernel_time, inner.tasks[current].user_time, inner.tasks[current].switch_time);
@@ -268,26 +260,36 @@ pub fn user_time_end() {
     TASK_MANAGER.user_time_end();
 }
 
-//* ch3-lab
-// pub fn get_current_task_block() -> TaskControlBlock {
-//     let inner = TASK_MANAGER.inner.exclusive_access();
-//     let current = inner.current_task;
-//     inner.tasks[current]
-// }
+//* ch3,4-lab
+// TaskControlBlock in chapter4 contains 'MemorySet' and other fields
+// which cannot derive 'Clone' and 'Copy' traits. Therefore, we need to
+// split the variables into separate parts
+pub fn get_current_task_status() -> TaskStatus {
+    let inner = TASK_MANAGER.inner.exclusive_access();
+    let current = inner.current_task;
+    inner.tasks.get(current).unwrap().task_status
+}
 
-// pub fn update_task_syscall_times(syscall_id: usize) {
-//     let mut inner = TASK_MANAGER.inner.exclusive_access();
-//     let current = inner.current_task;
-//     inner.tasks[current].syscall_times[syscall_id] += 1;
-// }
+pub fn get_current_task_time_cost() -> usize {
+    let inner = TASK_MANAGER.inner.exclusive_access();
+    let current = inner.current_task;
+    let task_block = inner.tasks.get(current).unwrap();
+    task_block.kernel_time + task_block.user_time
+}
 
-// pub fn update_switch_cost(cost: usize) {
-//     let mut inner = TASK_MANAGER.inner.exclusive_access();
-//     let current = inner.current_task;
-//     inner.tasks[current].switch_time += cost;
-// }
+pub fn get_current_task_syscall_times() -> [u32; MAX_SYSCALL_NUM] {
+    let inner = TASK_MANAGER.inner.exclusive_access();
+    let current = inner.current_task;
+    inner.tasks.get(current).unwrap().syscall_times
+}
 
-pub fn get_current_task() -> usize {
+pub fn update_task_syscall_times(syscall_id: usize) {
+    let mut inner = TASK_MANAGER.inner.exclusive_access();
+    let current = inner.current_task;
+    inner.tasks[current].syscall_times[syscall_id] += 1;
+}
+
+pub fn get_current_task_id() -> usize {
     let inner = TASK_MANAGER.inner.exclusive_access();
     inner.current_task
 }

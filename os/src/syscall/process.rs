@@ -9,11 +9,13 @@ use crate::task::{
     get_current_task_status, 
     get_current_task_syscall_times, 
     get_current_task_time_cost,
+    get_current_task_page_table, create_new_map_area
 };
 
-use crate::config::MAX_SYSCALL_NUM;
+use crate::config::{MAX_SYSCALL_NUM, PAGE_SIZE, MAXVA};
 use crate::timer::get_time_us;
 use crate::mm::translated_byte_buffer;
+use crate::mm::{VPNRange, VirtAddr, VirtPageNum, MapPermission};
 
 #[repr(C)]
 #[derive(Debug)]
@@ -93,9 +95,34 @@ pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
     0
 }
 
-// YOUR JOB: Implement mmap.
-pub fn sys_mmap(_start: usize, _len: usize, _port: usize) -> isize {
-    -1
+/// port: page permission [2:0] X|W|R
+pub fn sys_mmap(start: usize, len: usize, port: usize) -> isize {
+    if start % PAGE_SIZE != 0 /* start need to be page aligned */ || 
+        port & !0x7 != 0 /* other bits of port needs to be zero */ ||
+        port & 0x7 ==0 /* No permission set, meaningless */ ||
+        start >= MAXVA /* mapping range should be an legal address */ {
+        return -1;
+    }
+
+    // check the range [start, start + len)
+    let start_va: VirtPageNum = VirtAddr::from(start).floor();
+    let end_va: VirtPageNum = VirtAddr::from(start + len).ceil();
+    let vpns = VPNRange::new(start_va, end_va);
+    for vpn in vpns {
+       if let Some(pte) = get_current_task_page_table(vpn) {
+            // we find a pte that has been mapped
+            if pte.is_valid() {
+                return -1;
+            }
+       }
+    }
+    // all ptes in range has pass the test
+    create_new_map_area(
+        start_va.into(),
+        end_va.into(),
+        MapPermission::from_bits_truncate((port << 1) as u8) | MapPermission::U
+    );
+    0
 }
 
 // YOUR JOB: Implement munmap.

@@ -17,6 +17,7 @@ mod task;
 
 use crate::config::MAX_SYSCALL_NUM;
 use crate::loader::{get_app_data, get_num_app};
+use crate::mm::{VirtPageNum, PageTableEntry, VirtAddr, MapPermission};
 use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
@@ -289,7 +290,15 @@ pub fn update_task_syscall_times(syscall_id: usize) {
     inner.tasks[current].syscall_times[syscall_id] += 1;
 }
 
-pub fn get_current_task_id() -> usize {
+//* ch4-lab2, mmap, munmap
+pub fn get_current_task_page_table(vpn: VirtPageNum) -> Option<PageTableEntry> {
     let inner = TASK_MANAGER.inner.exclusive_access();
-    inner.current_task
+    let current = inner.current_task;
+    inner.tasks[current].memory_set.translate(vpn)
+}
+
+pub fn create_new_map_area(start_va: VirtAddr, end_va: VirtAddr, perm: MapPermission) {
+    let mut inner = TASK_MANAGER.inner.exclusive_access();
+    let current = inner.current_task;
+    inner.tasks[current].memory_set.insert_framed_area(start_va, end_va, perm);
 }

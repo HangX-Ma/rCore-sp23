@@ -18,6 +18,7 @@ pub const MEMORY_END: usize = 0x88000000;
 pub const MAX_SYSCALL_NUM: usize = 500;
 
 // virtual memory space settings
+pub const MAXVA: usize = usize::MAX;
 pub const TRAMPOLINE: usize = usize::MAX - PAGE_SIZE + 1;
 pub const TRAP_CONTEXT: usize = TRAMPOLINE - PAGE_SIZE;
 /// Return (bottom, top) of a kernel stack in kernel space.

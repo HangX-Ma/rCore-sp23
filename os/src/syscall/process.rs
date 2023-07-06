@@ -1,15 +1,18 @@
 //! App management syscalls
+
 // use super::stats::*; // lab2-pro3
 use crate::task::{
     change_program_brk,
     exit_current_and_run_next, 
     suspend_current_and_run_next,
     TaskStatus,
+    current_user_token,
     // get_current_task_block,
 };
 
 use crate::config::MAX_SYSCALL_NUM;
 use crate::timer::get_time_us;
+use crate::mm::translated_byte_buffer;
 
 #[repr(C)]
 #[derive(Debug)]
@@ -49,11 +52,23 @@ pub fn sys_yield() -> isize {
 
 pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
     let us = get_time_us();
-    unsafe {
-        *ts = TimeVal {
+    let dst_vec = translated_byte_buffer(
+        current_user_token(),
+        ts as *const u8, core::mem::size_of::<TimeVal>()
+    );
+    let ref time_val = TimeVal {
             sec: us / 1_000_000,
             usec: us % 1_000_000,
-        };
+    };
+    let src_ptr = time_val as *const TimeVal;
+    for (idx, dst) in dst_vec.into_iter().enumerate() {
+        let unit_len = dst.len();
+        unsafe {
+            dst.copy_from_slice(core::slice::from_raw_parts(
+                src_ptr.wrapping_byte_add(idx * unit_len) as *const u8,
+                unit_len)
+            );
+        }
     }
     0
 }

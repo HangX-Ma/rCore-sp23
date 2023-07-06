@@ -7,6 +7,7 @@
 #![reexport_test_harness_main = "test_main"] // help us create new `main` entry for test
 #![feature(custom_test_frameworks)]
 #![test_runner(test_runner)]
+#![feature(pointer_byte_offsets)]
 
 #[path = "boards/qemu.rs"]
 mod board;

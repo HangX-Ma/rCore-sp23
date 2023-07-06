@@ -246,7 +246,7 @@ pub fn exit_current_and_run_next() {
     run_next_task();
 }
 
-//? ch4 start
+//* ch4
 pub fn current_user_token() -> usize {
     TASK_MANAGER.get_current_token()
 }
@@ -258,7 +258,6 @@ pub fn current_trap_cx() -> &'static mut TrapContext {
 pub fn change_program_brk(size: i32) -> Option<usize> {
     TASK_MANAGER.change_current_program_brk(size)
 }
-//? ch4 end
 
 //* ch3-pro2
 pub fn user_time_start() {

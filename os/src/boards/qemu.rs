@@ -2,6 +2,10 @@
 use core::arch::asm;
 
 pub const CLOCK_FREQ: usize = 10000000;
+pub const MMIO: &[(usize, usize)] = &[
+    (0x0010_0000, 0x00_2000), // VIRT_TEST/RTC  in virt machine
+];
+
 
 const EXIT_SUCCESS: u32 = 0x5555; // Equals `exit(0)`. qemu successful exit
 

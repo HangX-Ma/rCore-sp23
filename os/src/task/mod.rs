@@ -15,21 +15,24 @@ mod switch;
 #[allow(clippy::module_inception)]
 mod task;
 
-use crate::config::{MAX_APP_NUM, MAX_SYSCALL_NUM};
-use crate::loader::{get_num_app, init_app_cx};
+use crate::config::MAX_SYSCALL_NUM;
+use crate::loader::{get_app_data, get_num_app};
 use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
+use crate::trap::TrapContext;
+use alloc::vec::Vec;
 use lazy_static::*;
+use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus};
 pub use context::TaskContext;
 pub use crate::timer::{get_time_ms, get_time_us};
 
-pub static mut SWITCH_TASK_START: usize = 0;
+// pub static mut SWITCH_TASK_START: usize = 0;
 
-pub unsafe fn __switch(current_task_cx_ptr: *mut TaskContext, next_task_cx_ptr: *const TaskContext) {
-    SWITCH_TASK_START = get_time_us();
-    switch::__switch(current_task_cx_ptr, next_task_cx_ptr);
-}
+// pub unsafe fn __switch(current_task_cx_ptr: *mut TaskContext, next_task_cx_ptr: *const TaskContext) {
+//     SWITCH_TASK_START = get_time_us();
+//     switch::__switch(current_task_cx_ptr, next_task_cx_ptr);
+// }
 
 /// The task manager, where all the tasks are managed.
 ///
@@ -50,7 +53,7 @@ pub struct TaskManager {
 /// Inner of Task Manager
 pub struct TaskManagerInner {
     /// task list
-    tasks: [TaskControlBlock; MAX_APP_NUM],
+    tasks: Vec<TaskControlBlock>,
     /// id of current `Running` task
     current_task: usize,
     /// the number of tasks that have not exit
@@ -70,20 +73,14 @@ impl TaskManagerInner {
 }
 
 lazy_static! {
-    /// Global variable: TASK_MANAGER
+    /// a `TaskManager` global instance through lazy_static!
     pub static ref TASK_MANAGER: TaskManager = {
+        println!("init TASK_MANAGER");
         let num_app = get_num_app();
-        let mut tasks = [TaskControlBlock {
-            task_cx: TaskContext::zero_init(),
-            task_status: TaskStatus::UnInit,
-            syscall_times: [0; MAX_SYSCALL_NUM],
-            switch_time: 0,
-            user_time: 0,
-            kernel_time: 0,
-        }; MAX_APP_NUM];
-        for (i, task) in tasks.iter_mut().enumerate() {
-            task.task_cx = TaskContext::goto_restore(init_app_cx(i));
-            task.task_status = TaskStatus::Ready;
+        println!("num_app = {}", num_app);
+        let mut tasks: Vec<TaskControlBlock> = Vec::new();
+        for i in 0..num_app {
+            tasks.push(TaskControlBlock::new(get_app_data(i), i));
         }
         TaskManager {
             num_app,
@@ -138,8 +135,8 @@ impl TaskManager {
         let current = inner.current_task;
         // ch3-pro1, 2
         inner.tasks[current].kernel_time += inner.update_checkpoint();
-        println!("[kernel] task {} exited, total cost in kernel/user {}/{} ms, context switch cost {} us",
-            current, inner.tasks[current].kernel_time, inner.tasks[current].user_time, inner.tasks[current].switch_time);
+        // println!("[kernel] task {} exited, total cost in kernel/user {}/{} ms, context switch cost {} us",
+        //     current, inner.tasks[current].kernel_time, inner.tasks[current].user_time, inner.tasks[current].switch_time);
         inner.tasks[current].task_status = TaskStatus::Exited;
         inner.alive_task_num -= 1;
     }
@@ -180,8 +177,27 @@ impl TaskManager {
             shutdown(false);
         }
     }
+    // ch4
+    /// Get the current 'Running' task's token.
+    fn get_current_token(&self) -> usize {
+        let inner = self.inner.exclusive_access();
+        inner.tasks[inner.current_task].get_user_token()
+    }
 
-    // ch3-pro2 start
+    /// Get the current 'Running' task's trap contexts.
+    fn get_current_trap_cx(&self) -> &'static mut TrapContext {
+        let inner = self.inner.exclusive_access();
+        inner.tasks[inner.current_task].get_trap_cx()
+    }
+
+    /// Change the current 'Running' task's program break
+    pub fn change_current_program_brk(&self, size: i32) -> Option<usize> {
+        let mut inner = self.inner.exclusive_access();
+        let cur = inner.current_task;
+        inner.tasks[cur].change_program_brk(size)
+    }
+
+    //* ch3-pro2 start
     /// record the kernel time, now start to record the user time
     pub fn user_time_start(&self) {
         let mut inner = self.inner.exclusive_access();
@@ -195,7 +211,7 @@ impl TaskManager {
         let current = inner.current_task;
         inner.tasks[current].user_time += inner.update_checkpoint();
     }
-    // ch3-pro2 end
+    //* ch3-pro2 end
 }
 
 /// run first task
@@ -230,7 +246,21 @@ pub fn exit_current_and_run_next() {
     run_next_task();
 }
 
-// ch3-pro2
+//? ch4 start
+pub fn current_user_token() -> usize {
+    TASK_MANAGER.get_current_token()
+}
+
+pub fn current_trap_cx() -> &'static mut TrapContext {
+    TASK_MANAGER.get_current_trap_cx()
+}
+/// Change the current 'Running' task's program break
+pub fn change_program_brk(size: i32) -> Option<usize> {
+    TASK_MANAGER.change_current_program_brk(size)
+}
+//? ch4 end
+
+//* ch3-pro2
 pub fn user_time_start() {
     TASK_MANAGER.user_time_start();
 }
@@ -239,24 +269,24 @@ pub fn user_time_end() {
     TASK_MANAGER.user_time_end();
 }
 
-// lab3
-pub fn get_current_task_block() -> TaskControlBlock {
-    let inner = TASK_MANAGER.inner.exclusive_access();
-    let current = inner.current_task;
-    inner.tasks[current]
-}
+//* ch3-lab
+// pub fn get_current_task_block() -> TaskControlBlock {
+//     let inner = TASK_MANAGER.inner.exclusive_access();
+//     let current = inner.current_task;
+//     inner.tasks[current]
+// }
 
-pub fn update_task_syscall_times(syscall_id: usize) {
-    let mut inner = TASK_MANAGER.inner.exclusive_access();
-    let current = inner.current_task;
-    inner.tasks[current].syscall_times[syscall_id] += 1;
-}
+// pub fn update_task_syscall_times(syscall_id: usize) {
+//     let mut inner = TASK_MANAGER.inner.exclusive_access();
+//     let current = inner.current_task;
+//     inner.tasks[current].syscall_times[syscall_id] += 1;
+// }
 
-pub fn update_switch_cost(cost: usize) {
-    let mut inner = TASK_MANAGER.inner.exclusive_access();
-    let current = inner.current_task;
-    inner.tasks[current].switch_time += cost;
-}
+// pub fn update_switch_cost(cost: usize) {
+//     let mut inner = TASK_MANAGER.inner.exclusive_access();
+//     let current = inner.current_task;
+//     inner.tasks[current].switch_time += cost;
+// }
 
 pub fn get_current_task() -> usize {
     let inner = TASK_MANAGER.inner.exclusive_access();

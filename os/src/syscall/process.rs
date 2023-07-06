@@ -1,13 +1,15 @@
 //! App management syscalls
 // use super::stats::*; // lab2-pro3
 use crate::task::{
+    change_program_brk,
     exit_current_and_run_next, 
     suspend_current_and_run_next,
     TaskStatus,
-    get_current_task_block,
+    // get_current_task_block,
 };
+
 use crate::config::MAX_SYSCALL_NUM;
-use crate::timer::{get_time_us};
+use crate::timer::get_time_us;
 
 #[repr(C)]
 #[derive(Debug)]
@@ -56,16 +58,25 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
     0
 }
 
-pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
-    let task_block = get_current_task_block();
-    // println!("[kernel]: time {} syscall_time {}", task_block.kernel_time + task_block.user_time, task_block.syscall_times[SYSCALL_GET_TIME]);
-    unsafe {
-        *ti = TaskInfo {
-            status: task_block.task_status,
-            syscall_times: task_block.syscall_times,
-            time: task_block.kernel_time + task_block.user_time,
-        };
+// pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
+//     let task_block = get_current_task_block();
+//     // println!("[kernel]: time {} syscall_time {}", task_block.kernel_time + task_block.user_time, task_block.syscall_times[SYSCALL_GET_TIME]);
+//     unsafe {
+//         *ti = TaskInfo {
+//             status: task_block.task_status,
+//             // syscall_times: task_block.syscall_times,
+//             time: task_block.kernel_time + task_block.user_time,
+//         };
+//     }
+//     0
+// }
+
+/// change data segment size
+pub fn sys_sbrk(size: i32) -> isize {
+    if let Some(old_brk) = change_program_brk(size) {
+        old_brk as isize
+    } else {
+        -1
     }
-    0
 }
 

@@ -7,6 +7,7 @@ pub const SYSCALL_EXIT: usize = 93;
 pub const SYSCALL_YIELD: usize = 124;
 pub const SYSCALL_GET_TIME: usize = 169;
 pub const SYSCALL_TASK_INFO: usize = 410;
+pub const SYSCALL_SBRK: usize = 214;
 
 
 fn syscall(which: usize, args: [usize; 3]) -> isize {
@@ -60,4 +61,8 @@ pub fn sys_get_time(time: &TimeVal, tz: usize) -> isize {
 /// syscall ID：410
 pub fn sys_task_info(ti: &TaskInfo) -> isize {
     syscall(SYSCALL_TASK_INFO, [ti as *const _ as usize, 0, 0])
+}
+
+pub fn sys_sbrk(size: i32) -> isize {
+    syscall(SYSCALL_SBRK, [size as usize, 0, 0])
 }

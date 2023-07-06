@@ -115,6 +115,10 @@ pub fn task_info(ti: &TaskInfo) -> isize {
     sys_task_info(ti)
 }
 
+pub fn sbrk(size: i32) -> isize {
+    sys_sbrk(size)
+}
+
 pub fn test_runner(_test: &[&dyn Fn()]) {
     loop {}
 }

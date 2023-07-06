@@ -7,7 +7,6 @@ BUILD_DIR 	:= build
 
 BASE ?= 0
 TEST ?= 0
-CHAPTER ?= $(TEST)
 
 ifeq ($(TEST), 0) # No test, deprecated, previously used in v3
         APPS :=  $(filter-out $(wildcard $(APP_DIR)/ch*.rs), $(wildcard $(APP_DIR)/*.rs))
@@ -30,20 +29,13 @@ BINS := $(patsubst $(APP_DIR)/%.rs, $(TARGET_DIR)/%.bin, $(APPS))
 OBJDUMP := rust-objdump --arch-name=riscv64
 OBJCOPY := rust-objcopy --binary-architecture=riscv64
 
-PY := python3
-
 # Building mode argument
 ifeq ($(MODE), release)
 	MODE_ARG := --release
 endif
 
 elf:
-	@echo $(ELFS)
-	@if [ ${TEST} -ne 3 ]; then \
-		cargo build $(MODE_ARG);\
-	else \
-		CHAPTER=$(TEST) python3 build.py ;\
-	fi
+	@cargo build $(MODE_ARG)
 
 binary: elf
 	@$(foreach elf, $(ELFS), \

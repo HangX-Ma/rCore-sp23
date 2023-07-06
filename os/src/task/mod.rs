@@ -127,8 +127,8 @@ impl TaskManager {
         let current = inner.current_task;
         //* ch3-pro1, 2
         inner.tasks[current].kernel_time += inner.update_checkpoint();
-        // println!("[kernel] task {} exited, total cost in kernel/user {}/{} ms, context switch cost {} us",
-        //     current, inner.tasks[current].kernel_time, inner.tasks[current].user_time, inner.tasks[current].switch_time);
+        println!("[kernel] task {} exited, cost in kernel {} ms and cost in user {} ms",
+            current, inner.tasks.get(current).unwrap().kernel_time, inner.tasks.get(current).unwrap().kernel_time);
         inner.tasks[current].task_status = TaskStatus::Exited;
         inner.alive_task_num -= 1;
     }

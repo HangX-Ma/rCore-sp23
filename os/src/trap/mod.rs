@@ -65,11 +65,6 @@ pub fn enable_timer_interrupt() {
     }
 }
 
-// #[no_mangle]
-// pub unsafe extern "C" fn switch_cost () {
-//     crate::task::update_switch_cost(get_time_us() - SWITCH_TASK_START); 
-// }
-
 #[no_mangle]
 /// handle an interrupt, exception, or system call from user space
 pub extern "C" fn trap_handler() -> ! {

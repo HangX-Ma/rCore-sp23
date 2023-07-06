@@ -93,6 +93,16 @@ pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
     0
 }
 
+// YOUR JOB: Implement mmap.
+pub fn sys_mmap(_start: usize, _len: usize, _port: usize) -> isize {
+    -1
+}
+
+// YOUR JOB: Implement munmap.
+pub fn sys_munmap(_start: usize, _len: usize) -> isize {
+    -1
+}
+
 /// change data segment size
 pub fn sys_sbrk(size: i32) -> isize {
     if let Some(old_brk) = change_program_brk(size) {

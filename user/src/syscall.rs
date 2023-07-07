@@ -2,6 +2,7 @@
 use core::arch::asm;
 use super::{TimeVal, TaskInfo};
 
+pub const SYSCALL_READ: usize = 63;
 pub const SYSCALL_WRITE: usize = 64;
 pub const SYSCALL_EXIT: usize = 93;
 pub const SYSCALL_YIELD: usize = 124;
@@ -10,9 +11,13 @@ pub const SYSCALL_TASK_INFO: usize = 410;
 pub const SYSCALL_MUNMAP: usize = 215;
 pub const SYSCALL_MMAP: usize = 222;
 pub const SYSCALL_SBRK: usize = 214;
+pub const SYSCALL_GETPID: usize = 172;
+pub const SYSCALL_FORK: usize = 220;
+pub const SYSCALL_EXEC: usize = 221;
+pub const SYSCALL_WAITPID: usize = 260;
 
 
-fn syscall(which: usize, args: [usize; 3]) -> isize {
+fn syscall(id: usize, args: [usize; 3]) -> isize {
     let mut ret: isize;
     unsafe {
         asm!(
@@ -20,7 +25,7 @@ fn syscall(which: usize, args: [usize; 3]) -> isize {
             inlateout("x10") args[0] => ret,
             in("x11") args[1],
             in("x12") args[2],
-            in("x17") which,
+            in("x17") id,
         );
     }
     ret
@@ -40,8 +45,9 @@ pub fn sys_write(fd: usize, buffer: &[u8]) -> isize {
 /// 参数：`exit_code` 表示应用程序的返回值。
 /// 返回值：该系统调用不应该返回。
 /// syscall ID: 93
-pub fn sys_exit(xstate: i32) -> isize {
-    syscall(SYSCALL_EXIT, [xstate as usize, 0, 0])
+pub fn sys_exit(exit_code: i32) -> ! {
+    syscall(SYSCALL_EXIT, [exit_code as usize, 0, 0]);
+    panic!("sys_exit never returns!");
 }
 
 /// 功能：应用主动交出 CPU 所有权并切换到其他应用。
@@ -76,3 +82,31 @@ pub fn sys_munmap(start: usize, len: usize) -> isize {
 pub fn sys_sbrk(size: i32) -> isize {
     syscall(SYSCALL_SBRK, [size as usize, 0, 0])
 }
+
+//* ch5
+pub fn sys_read(fd: usize, buffer: &mut [u8]) -> isize {
+    syscall(
+        SYSCALL_READ,
+        [fd, buffer.as_mut_ptr() as usize, buffer.len()],
+    )
+}
+
+pub fn sys_getpid() -> isize {
+    syscall(SYSCALL_GETPID, [0, 0, 0])
+}
+
+pub fn sys_fork() -> isize {
+    syscall(SYSCALL_FORK, [0, 0, 0])
+}
+
+pub fn sys_exec(path: &str, args: &[*const u8]) -> isize {
+    syscall(
+        SYSCALL_EXEC,
+        [path.as_ptr() as usize, args.as_ptr() as usize, 0],
+    )
+}
+
+pub fn sys_waitpid(pid: isize, xstatus: *mut i32) -> isize {
+    syscall(SYSCALL_WAITPID, [pid as usize, xstatus as usize, 0])
+}
+

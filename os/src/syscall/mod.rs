@@ -15,7 +15,7 @@ pub const SYSCALL_EXIT: usize = 93;
 pub const SYSCALL_YIELD: usize = 124;
 pub const SYSCALL_GET_TIME: usize = 169;
 pub const SYSCALL_TASK_INFO: usize = 410;
-pub const SYSCALL_MUNMAP: usize = 216;
+pub const SYSCALL_MUNMAP: usize = 215;
 pub const SYSCALL_MMAP: usize = 222;
 pub const SYSCALL_SBRK: usize = 214;
 

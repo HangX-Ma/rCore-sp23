@@ -10,6 +10,7 @@ use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::arch::asm;
+use core::borrow::BorrowMut;
 use lazy_static::*;
 use riscv::register::satp;
 
@@ -382,6 +383,10 @@ impl MemorySet {
         } else {
             false
         }
+    }
+    #[allow(unused)]
+    pub fn get_page_table(&mut self) -> &mut PageTable {
+        self.page_table.borrow_mut()
     }
 }
 

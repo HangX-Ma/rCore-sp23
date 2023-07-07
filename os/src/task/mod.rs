@@ -10,6 +10,7 @@
 //! might not be what you expect.
 
 mod context;
+mod pid;
 mod switch;
 
 #[allow(clippy::module_inception)]
@@ -29,6 +30,8 @@ use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus};
 pub use context::TaskContext;
 pub use crate::timer::{get_time_ms, get_time_us};
+
+pub use pid::{pid_alloc, KernelStack, PidAllocator, PidHandle};
 
 /// The task manager, where all the tasks are managed.
 ///

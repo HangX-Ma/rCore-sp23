@@ -176,6 +176,15 @@ pub fn waitpid(pid: usize, exit_code: &mut i32) -> isize {
     }
 }
 
+//* ch6
+pub fn spawn(path: &str) -> isize {
+    sys_spawn(path)
+}
+
+pub fn set_priority(prio: isize) -> isize {
+    sys_set_priority(prio)
+}
+
 pub fn test_runner(_test: &[&dyn Fn()]) {
     loop {}
 }

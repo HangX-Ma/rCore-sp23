@@ -23,6 +23,8 @@ pub const SYSCALL_TASK_INFO: usize = 410;
 pub const SYSCALL_MUNMAP: usize = 215;
 pub const SYSCALL_MMAP: usize = 222;
 pub const SYSCALL_SBRK: usize = 214;
+pub const SYSCALL_SPAWN: usize = 400;
+pub const SYSCALL_SET_PRIORITY: usize = 140;
 
 mod fs;
 mod process;
@@ -46,6 +48,8 @@ pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
         SYSCALL_MMAP => sys_mmap(args[0], args[1], args[2]),
         SYSCALL_MUNMAP => sys_munmap(args[0], args[1]),
         SYSCALL_SBRK => sys_sbrk(args[0] as i32),
+        SYSCALL_SPAWN => sys_spawn(args[0] as *const u8),
+        SYSCALL_SET_PRIORITY => sys_set_priority(args[0] as isize),
         _ => panic!("Unsupported syscall_id: {}", syscall_id),
     }
 }

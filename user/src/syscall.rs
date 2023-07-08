@@ -15,6 +15,8 @@ pub const SYSCALL_GETPID: usize = 172;
 pub const SYSCALL_FORK: usize = 220;
 pub const SYSCALL_EXEC: usize = 221;
 pub const SYSCALL_WAITPID: usize = 260;
+pub const SYSCALL_SPAWN: usize = 400;
+pub const SYSCALL_SET_PRIORITY: usize = 140;
 
 
 fn syscall(id: usize, args: [usize; 3]) -> isize {
@@ -128,3 +130,10 @@ pub fn sys_waitpid(pid: isize, xstatus: *mut i32) -> isize {
     syscall(SYSCALL_WAITPID, [pid as usize, xstatus as usize, 0])
 }
 
+pub fn sys_spawn(path: &str) -> isize {
+    syscall(SYSCALL_SPAWN, [path.as_ptr() as usize, 0, 0])
+}
+
+pub fn sys_set_priority(prio: isize) -> isize {
+    syscall(SYSCALL_SET_PRIORITY, [prio as usize, 0, 0])
+}

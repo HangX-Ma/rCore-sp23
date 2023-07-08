@@ -220,3 +220,13 @@ pub fn sys_sbrk(size: i32) -> isize {
         -1
     }
 }
+
+/// HINT: fork + exec =/= spawn
+pub fn sys_spawn(_path: *const u8) -> isize {
+    -1
+}
+
+
+pub fn sys_set_priority(_prio: isize) -> isize {
+    -1
+}

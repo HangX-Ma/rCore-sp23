@@ -25,17 +25,17 @@ use crate::loader::get_app_data_by_name;
 use alloc::sync::Arc;
 use lazy_static::*;
 pub use pid::{pid_alloc, KernelStack, PidHandle};
-pub use manager::{fetch_task, TaskManager};
+pub use manager::{fetch_task, add_task, TaskManager};
 use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus};
 
 pub use context::TaskContext;
-pub use manager::add_task;
 pub use processor::{
     current_task, current_trap_cx, current_user_token, run_tasks, schedule, take_current_task,
     Processor,
 };
 use crate::config::MAX_SYSCALL_NUM;
+use crate::mm::{VirtAddr, VirtPageNum, VPNRange, MapPermission, PageTableEntry};
 
 /// Suspend the current 'Running' task and run the next task in task list.
 pub fn suspend_current_and_run_next() {
@@ -169,34 +169,34 @@ pub fn update_task_syscall_times(syscall_id: usize) {
 }
 
 // //* ch4-lab2, mmap, munmap
-// pub fn get_current_task_page_table(vpn: VirtPageNum) -> Option<PageTableEntry> {
-//     let inner = TASK_MANAGER.inner.exclusive_access();
-//     let current = inner.current_task;
-//     inner.tasks[current].memory_set.translate(vpn)
-// }
+pub fn get_current_task_page_table(vpn: VirtPageNum) -> Option<PageTableEntry> {
+    let task = current_task().unwrap();
+    let task_inner = task.inner_exclusive_access();
+    task_inner.memory_set.translate(vpn)
+}
 
-// pub fn create_new_map_area(start_va: VirtAddr, end_va: VirtAddr, perm: MapPermission) {
-//     let mut inner = TASK_MANAGER.inner.exclusive_access();
-//     let current = inner.current_task;
-//     inner.tasks[current].memory_set.insert_framed_area(start_va, end_va, perm);
-// }
+pub fn create_new_map_area(start_va: VirtAddr, end_va: VirtAddr, perm: MapPermission) {
+    let task = current_task().unwrap();
+    let mut task_inner = task.inner_exclusive_access();
+    task_inner.memory_set.insert_framed_area(start_va, end_va, perm);
+}
 
-// pub fn unmap_consecutive_area(start: usize, len: usize) -> isize {
-//     let mut inner = TASK_MANAGER.inner.exclusive_access();
-//     let current = inner.current_task;
-//     let start_vpn = VirtAddr::from(start).floor();
-//     let end_vpn = VirtAddr::from(start + len).ceil();
-//     let vpns = VPNRange::new(start_vpn, end_vpn);
-//     for vpn in vpns {
-//         if let Some(pte) = inner.tasks[current].memory_set.translate(vpn) {
-//             if !pte.is_valid() {
-//                 return -1;
-//             }
-//             inner.tasks[current].memory_set.get_page_table().unmap(vpn);
-//         } else {
-//             // Also unmapped if no PTE found
-//             return -1;
-//         }
-//     }
-//     0
-// }
+pub fn unmap_consecutive_area(start: usize, len: usize) -> isize {
+    let task = current_task().unwrap();
+    let mut task_inner = task.inner_exclusive_access();
+    let start_vpn = VirtAddr::from(start).floor();
+    let end_vpn = VirtAddr::from(start + len).ceil();
+    let vpns = VPNRange::new(start_vpn, end_vpn);
+    for vpn in vpns {
+        if let Some(pte) = task_inner.memory_set.translate(vpn) {
+            if !pte.is_valid() {
+                return -1;
+            }
+            task_inner.memory_set.get_page_table().unmap(vpn);
+        } else {
+            // Also unmapped if no PTE found
+            return -1;
+        }
+    }
+    0
+}

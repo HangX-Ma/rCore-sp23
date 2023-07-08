@@ -10,12 +10,13 @@ use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
 use core::cell::RefMut;
 
+use crate::timer::get_time_ms;
+
 pub struct TaskControlBlock {
     // immutable
     pub pid: PidHandle,
     /// Kernel stack corresponding to PID
     pub kernel_stack: KernelStack,
-
     // mutable
     inner: UPSafeCell<TaskControlBlockInner>,
 }
@@ -38,6 +39,7 @@ pub struct TaskControlBlockInner {
     pub syscall_times: [u32; MAX_SYSCALL_NUM],
     pub user_time: usize,
     pub kernel_time: usize,
+    checkpoint: usize, // record time point
 
     pub memory_set: MemorySet, // Application address space
     pub trap_cx_ppn: PhysPageNum, // The physical page number of the frame where the trap context is placed
@@ -61,11 +63,17 @@ impl TaskControlBlockInner {
     pub fn get_user_token(&self) -> usize {
         self.memory_set.token()
     }
-    fn get_status(&self) -> TaskStatus {
+    pub fn get_status(&self) -> TaskStatus {
         self.task_status
     }
     pub fn is_zombie(&self) -> bool {
         self.get_status() == TaskStatus::Zombie
+    }
+    /// update checkpoint and return the diff time
+    pub fn update_checkpoint(&mut self) -> usize {
+        let prev_point = self.checkpoint;
+        self.checkpoint = get_time_ms();
+        return self.checkpoint - prev_point;
     }
 }
 
@@ -96,6 +104,7 @@ impl TaskControlBlock {
                     syscall_times: [0; MAX_SYSCALL_NUM],
                     user_time: 0,
                     kernel_time: 0,
+                    checkpoint: 0,
                     memory_set,
                     trap_cx_ppn,
                     base_size: user_sp,
@@ -172,6 +181,7 @@ impl TaskControlBlock {
                     syscall_times: [0; MAX_SYSCALL_NUM],
                     user_time: 0,
                     kernel_time: 0,
+                    checkpoint: get_time_ms(), // give the new process a new start point
                     memory_set,
                     trap_cx_ppn,
                     base_size: parent_inner.base_size,

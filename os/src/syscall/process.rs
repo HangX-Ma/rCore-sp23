@@ -9,9 +9,9 @@ use crate::task::{
     add_task,
     current_task,
     current_user_token,
-    // get_current_task_status, 
-    // get_current_task_syscall_times, 
-    // get_current_task_time_cost,
+    get_current_task_status, 
+    get_current_task_syscall_times, 
+    get_current_task_time_cost,
     // get_current_task_page_table,
     // create_new_map_area,
     // unmap_consecutive_area
@@ -145,29 +145,29 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
     0
 }
 
-// pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
-//     let dst_vec = translated_byte_buffer(
-//         current_user_token(),
-//         ti as *const u8, core::mem::size_of::<TaskInfo>()
-//     );
-//     let ref task_info = TaskInfo {
-//         status: get_current_task_status(),
-//         syscall_times: get_current_task_syscall_times(),
-//         time: get_current_task_time_cost(),
-//     };
-//     // println!("[kernel]: time {} syscall_time {}", task_info.time, task_info.syscall_times[super::SYSCALL_GET_TIME]);
-//     let src_ptr = task_info as *const TaskInfo;
-//     for (idx, dst) in dst_vec.into_iter().enumerate() {
-//         let unit_len = dst.len();
-//         unsafe {
-//             dst.copy_from_slice(core::slice::from_raw_parts(
-//                 src_ptr.wrapping_byte_add(idx * unit_len) as *const u8,
-//                 unit_len)
-//             );
-//         }
-//     }
-//     0
-// }
+pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
+    let dst_vec = translated_byte_buffer(
+        current_user_token(),
+        ti as *const u8, core::mem::size_of::<TaskInfo>()
+    );
+    let ref task_info = TaskInfo {
+        status: get_current_task_status(),
+        syscall_times: get_current_task_syscall_times(),
+        time: get_current_task_time_cost(),
+    };
+    println!("[kernel]: time {} syscall_time {}", task_info.time, task_info.syscall_times[super::SYSCALL_GET_TIME]);
+    let src_ptr = task_info as *const TaskInfo;
+    for (idx, dst) in dst_vec.into_iter().enumerate() {
+        let unit_len = dst.len();
+        unsafe {
+            dst.copy_from_slice(core::slice::from_raw_parts(
+                src_ptr.wrapping_byte_add(idx * unit_len) as *const u8,
+                unit_len)
+            );
+        }
+    }
+    0
+}
 
 // /// port: page permission [2:0] X|W|R
 // pub fn sys_mmap(start: usize, len: usize, port: usize) -> isize {

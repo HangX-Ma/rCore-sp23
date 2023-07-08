@@ -21,8 +21,9 @@ use crate::task::{
     current_user_token,
     exit_current_and_run_next,
     suspend_current_and_run_next,
-    // user_time_start,
-    // user_time_end,
+    user_time_start,
+    user_time_end,
+    update_task_syscall_times,
 };
 
 use crate::timer::{
@@ -68,7 +69,7 @@ pub fn enable_timer_interrupt() {
 #[no_mangle]
 /// handle an interrupt, exception, or system call from user space
 pub extern "C" fn trap_handler() -> ! {
-    // user_time_start(); //* ch3-pro2
+    user_time_start(); //* ch3-pro2
     set_kernel_trap_entry(); // deal with S Mode trap in kernel
     let mut cx = current_trap_cx();  // the app's trap context locates in user space not kernel space now
     let scause = scause::read(); // get trap cause
@@ -76,7 +77,7 @@ pub extern "C" fn trap_handler() -> ! {
     match scause.cause() {
         Trap::Exception(Exception::UserEnvCall) => {
             let syscall_id = cx.x[17];
-            // update_task_syscall_times(syscall_id);
+            update_task_syscall_times(syscall_id);
             cx.sepc += 4;
             let result = syscall(syscall_id, [cx.x[10], cx.x[11], cx.x[12]]) as usize;
             // cx is changed during sys_exec, so we have to call it again
@@ -110,7 +111,7 @@ pub extern "C" fn trap_handler() -> ! {
             );
         }
     }
-    // user_time_end(); //* ch3-pro2
+    user_time_end(); //* ch3-pro2
     trap_return();
 }
 

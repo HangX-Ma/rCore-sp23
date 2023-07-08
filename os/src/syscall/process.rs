@@ -1,10 +1,16 @@
 //! App management syscalls
 
+use crate::sync::UPSafeCell;
+use alloc::vec::Vec;
 use alloc::sync::Arc;
 use crate::task::{
+    TaskContext,
+    TaskStatus,
+    TaskControlBlock,
+    TaskControlBlockInner,
+    KernelStack,
     exit_current_and_run_next, 
     suspend_current_and_run_next,
-    TaskStatus,
     add_task,
     current_task,
     current_user_token,
@@ -13,14 +19,15 @@ use crate::task::{
     get_current_task_time_cost,
     get_current_task_page_table,
     create_new_map_area,
-    unmap_consecutive_area
+    unmap_consecutive_area, pid_alloc
 };
 
+use crate::trap::{TrapContext, trap_handler};
 use crate::loader::get_app_data_by_name;
-use crate::config::{MAX_SYSCALL_NUM, PAGE_SIZE, MAXVA};
-use crate::timer::get_time_us;
+use crate::config::{MAX_SYSCALL_NUM, PAGE_SIZE, TRAP_CONTEXT_BASE, MAXVA};
+use crate::timer::{get_time_us, get_time_ms};
 use crate::mm::{translated_byte_buffer, translated_str, translated_refmut};
-use crate::mm::{VPNRange, VirtAddr, MapPermission};
+use crate::mm::{VPNRange, VirtAddr, MapPermission, MemorySet, KERNEL_SPACE};
 
 #[repr(C)]
 #[derive(Debug)]
@@ -222,8 +229,61 @@ pub fn sys_sbrk(size: i32) -> isize {
 }
 
 /// HINT: fork + exec =/= spawn
-pub fn sys_spawn(_path: *const u8) -> isize {
-    -1
+/// ALERT: Don't fork parent process address space
+pub fn sys_spawn(path: *const u8) -> isize {
+    let task = current_task().unwrap();
+    let mut parent_inner = task.inner_exclusive_access();
+    let token = parent_inner.memory_set.token();
+    let path = translated_str(token, path);
+    if let Some(elf_data) = get_app_data_by_name(path.as_str()) {
+        let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
+        let trap_cx_ppn = memory_set
+            .translate(VirtAddr::from(TRAP_CONTEXT_BASE).into())
+            .unwrap()
+            .ppn();
+        // alloc a pid and a kernel stack in kernel space
+        let pid_handle = pid_alloc();
+        let kernel_stack = KernelStack::new(&pid_handle);
+        let kernel_stack_top = kernel_stack.get_top();
+        let task_control_block = Arc::new(TaskControlBlock {
+            pid: pid_handle,
+            kernel_stack,
+            inner: unsafe {
+                UPSafeCell::new(TaskControlBlockInner {
+                    task_status: TaskStatus::Ready,
+                    task_cx: TaskContext::goto_trap_return(kernel_stack_top),
+                    syscall_times: [0; MAX_SYSCALL_NUM],
+                    user_time: 0,
+                    kernel_time: 0,
+                    checkpoint: get_time_ms(), // give the new process a new start point
+                    memory_set,
+                    trap_cx_ppn,
+                    base_size: parent_inner.base_size,
+                    heap_bottom: parent_inner.heap_bottom,
+                    program_brk: parent_inner.program_brk,
+                    parent: Some(Arc::downgrade(&task)),
+                    children: Vec::new(),
+                    exit_code: 0,
+                })
+            },
+        });
+        // add child
+        parent_inner.children.push(task_control_block.clone());
+        // prepare TrapContext in user space
+        let trap_cx = task_control_block.inner_exclusive_access().get_trap_cx();
+        *trap_cx = TrapContext::app_init_context(
+            entry_point,
+            user_sp,
+            KERNEL_SPACE.exclusive_access().token(),
+            kernel_stack_top,
+            trap_handler as usize,
+        );
+        let pid = task_control_block.pid.0 as isize;
+        add_task(task_control_block);
+        pid
+    } else {
+        -1
+    }
 }
 
 

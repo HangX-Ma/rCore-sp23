@@ -18,7 +18,7 @@ pub struct TaskControlBlock {
     /// Kernel stack corresponding to PID
     pub kernel_stack: KernelStack,
     // mutable
-    inner: UPSafeCell<TaskControlBlockInner>,
+    pub inner: UPSafeCell<TaskControlBlockInner>,
 }
 
 impl TaskControlBlock {
@@ -39,7 +39,7 @@ pub struct TaskControlBlockInner {
     pub syscall_times: [u32; MAX_SYSCALL_NUM],
     pub user_time: usize,
     pub kernel_time: usize,
-    checkpoint: usize, // record time point
+    pub checkpoint: usize, // record time point
 
     pub memory_set: MemorySet, // Application address space
     pub trap_cx_ppn: PhysPageNum, // The physical page number of the frame where the trap context is placed

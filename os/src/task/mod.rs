@@ -27,7 +27,7 @@ use lazy_static::*;
 pub use pid::{pid_alloc, KernelStack, PidHandle};
 pub use manager::{fetch_task, add_task, TaskManager};
 use switch::__switch;
-pub use task::{TaskControlBlock, TaskStatus};
+pub use task::{TaskControlBlock, TaskControlBlockInner, TaskStatus};
 
 pub use context::TaskContext;
 pub use processor::{

@@ -137,6 +137,14 @@ impl PhysAddr {
     }
 }
 
+impl PhysAddr {
+    ///Get mutable reference to `PhysAddr` value
+    /// Get the mutable reference of physical address
+    pub fn get_mut<T>(&self) -> &'static mut T {
+        unsafe { (self.0 as *mut T).as_mut().unwrap() }
+    }
+}
+
 impl From<PhysAddr> for PhysPageNum {
     fn from(v: PhysAddr) -> Self {
         assert_eq!(v.page_offset(), 0);

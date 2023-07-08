@@ -14,22 +14,22 @@
 
 mod context;
 
-use crate::config::{TRAMPOLINE, TRAP_CONTEXT};
+use crate::config::{TRAMPOLINE, TRAP_CONTEXT_BASE};
 use crate::syscall::syscall;
 use crate::task::{
     current_trap_cx,
     current_user_token,
     exit_current_and_run_next,
     suspend_current_and_run_next,
-    user_time_start,
-    user_time_end,
+    // user_time_start,
+    // user_time_end,
 };
 
 use crate::timer::{
     set_next_trigger,
 };
 
-use crate::task::update_task_syscall_times;
+// use crate::task::update_task_syscall_times;
 use core::arch::{global_asm, asm};
 use riscv::register::{
     mtvec::TrapMode,
@@ -68,36 +68,35 @@ pub fn enable_timer_interrupt() {
 #[no_mangle]
 /// handle an interrupt, exception, or system call from user space
 pub extern "C" fn trap_handler() -> ! {
-    user_time_start(); //* ch3-pro2
+    // user_time_start(); //* ch3-pro2
     set_kernel_trap_entry(); // deal with S Mode trap in kernel
-    let cx = current_trap_cx();  // the app's trap context locates in user space not kernel space now
+    let mut cx = current_trap_cx();  // the app's trap context locates in user space not kernel space now
     let scause = scause::read(); // get trap cause
     let stval = stval::read(); // get extra value
     match scause.cause() {
         Trap::Exception(Exception::UserEnvCall) => {
             let syscall_id = cx.x[17];
-            update_task_syscall_times(syscall_id);
+            // update_task_syscall_times(syscall_id);
             cx.sepc += 4;
-            cx.x[10] = syscall(syscall_id, [cx.x[10], cx.x[11], cx.x[12]]) as usize;
+            let result = syscall(syscall_id, [cx.x[10], cx.x[11], cx.x[12]]) as usize;
+            // cx is changed during sys_exec, so we have to call it again
+            cx = current_trap_cx();
+            cx.x[10] = result as usize;
         }
-        Trap::Exception(Exception::StoreFault) | 
-        Trap::Exception(Exception::StorePageFault) | 
-        Trap::Exception(Exception::StoreMisaligned) |
-        Trap::Exception(Exception::InstructionPageFault) |
-        Trap::Exception(Exception::InstructionMisaligned) | 
-        Trap::Exception(Exception::LoadFault) |
-        Trap::Exception(Exception::LoadPageFault) => {
-            let fp: usize;
-            unsafe {
-                asm!("mv {}, fp", out(reg) fp,);
-            }
+        Trap::Exception(Exception::StoreFault) 
+        | Trap::Exception(Exception::StorePageFault)
+        | Trap::Exception(Exception::StoreMisaligned)
+        | Trap::Exception(Exception::InstructionPageFault)
+        | Trap::Exception(Exception::InstructionMisaligned)
+        | Trap::Exception(Exception::LoadFault)
+        | Trap::Exception(Exception::LoadPageFault) => {
             println!("[kernel] {:?} in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.",
-                scause.cause(), stval, fp);
-            exit_current_and_run_next();
+                scause.cause(), stval, current_trap_cx().sepc);
+            exit_current_and_run_next(-2);
         }
         Trap::Exception(Exception::IllegalInstruction) => {
             println!("[kernel] IllegalInstruction in application, core dumped.");
-            exit_current_and_run_next();
+            exit_current_and_run_next(-3);
         }
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
             set_next_trigger();
@@ -111,7 +110,7 @@ pub extern "C" fn trap_handler() -> ! {
             );
         }
     }
-    user_time_end(); //* ch3-pro2
+    // user_time_end(); //* ch3-pro2
     trap_return();
 }
 
@@ -123,7 +122,7 @@ pub fn trap_return() -> ! {
     // set user trap entry to '__alltraps', this ensures that the applications
     // will jump to '__alltraps' when triggering S Mode trap
     set_user_trap_entry();
-    let trap_cx_ptr = TRAP_CONTEXT;
+    let trap_cx_ptr = TRAP_CONTEXT_BASE;
     let user_satp = current_user_token();
     extern "C" {
         fn __alltraps();

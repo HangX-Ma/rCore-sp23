@@ -134,6 +134,10 @@ pub fn sys_spawn(path: &str) -> isize {
     syscall(SYSCALL_SPAWN, [path.as_ptr() as usize, 0, 0])
 }
 
+// syscall ID：140
+// 设置当前进程优先级为 prio
+// 参数：prio 进程优先级，要求 prio >= 2
+// 返回值：如果输入合法则返回 prio，否则返回 -1
 pub fn sys_set_priority(prio: isize) -> isize {
     syscall(SYSCALL_SET_PRIORITY, [prio as usize, 0, 0])
 }

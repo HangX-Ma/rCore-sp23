@@ -54,6 +54,9 @@ pub struct TaskControlBlockInner {
     pub parent: Option<Weak<TaskControlBlock>>,
     pub children: Vec<Arc<TaskControlBlock>>, // A vector containing TCBs of all child processes of the current process
     pub exit_code: i32, // It is set when active exit or execution error occurs
+
+    pub stride: u64,
+    pub priority: u64,
 }
 
 impl TaskControlBlockInner {
@@ -74,6 +77,9 @@ impl TaskControlBlockInner {
         let prev_point = self.checkpoint;
         self.checkpoint = get_time_ms();
         return self.checkpoint - prev_point;
+    }
+    pub fn set_priority(&mut self, level: u64) {
+        self.priority = level;
     }
 }
 
@@ -113,6 +119,8 @@ impl TaskControlBlock {
                     parent: None,
                     children: Vec::new(),
                     exit_code: 0,
+                    stride: 0,
+                    priority: 16,
                 })
             },
         };
@@ -190,6 +198,8 @@ impl TaskControlBlock {
                     parent: Some(Arc::downgrade(self)),
                     children: Vec::new(),
                     exit_code: 0,
+                    stride: 0,
+                    priority: 16,
                 })
             },
         });

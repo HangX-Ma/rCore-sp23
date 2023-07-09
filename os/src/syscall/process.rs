@@ -19,7 +19,8 @@ use crate::task::{
     get_current_task_time_cost,
     get_current_task_page_table,
     create_new_map_area,
-    unmap_consecutive_area, pid_alloc
+    unmap_consecutive_area,
+    pid_alloc,
 };
 
 use crate::trap::{TrapContext, trap_handler};
@@ -264,6 +265,8 @@ pub fn sys_spawn(path: *const u8) -> isize {
                     parent: Some(Arc::downgrade(&task)),
                     children: Vec::new(),
                     exit_code: 0,
+                    stride: 0,
+                    priority: 16,
                 })
             },
         });
@@ -287,6 +290,11 @@ pub fn sys_spawn(path: *const u8) -> isize {
 }
 
 
-pub fn sys_set_priority(_prio: isize) -> isize {
-    -1
+pub fn sys_set_priority(prio: isize) -> isize {
+    if prio <= 1 {
+        return -1;
+    }
+    let task = current_task().unwrap();
+    task.inner.exclusive_access().set_priority(prio as u64);
+    prio
 }

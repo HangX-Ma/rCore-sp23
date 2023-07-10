@@ -138,7 +138,10 @@ impl PhysAddr {
 }
 
 impl PhysAddr {
-    ///Get mutable reference to `PhysAddr` value
+    /// Get the immutable reference of physical address
+    pub fn get_ref<T>(&self) -> &'static T {
+        unsafe { (self.0 as *const T).as_ref().unwrap() }
+    }
     /// Get the mutable reference of physical address
     pub fn get_mut<T>(&self) -> &'static mut T {
         unsafe { (self.0 as *mut T).as_mut().unwrap() }
@@ -226,6 +229,12 @@ pub trait StepByOne {
 }
 
 impl StepByOne for VirtPageNum {
+    fn step(&mut self) {
+        self.0 += 1;
+    }
+}
+
+impl StepByOne for PhysPageNum {
     fn step(&mut self) {
         self.0 += 1;
     }

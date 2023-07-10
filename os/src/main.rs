@@ -12,23 +12,25 @@
 #[path = "boards/qemu.rs"]
 mod board;
 
-extern crate alloc;
+extern crate log;
 #[macro_use]
 extern crate bitflags;
 
+extern crate alloc;
 #[macro_use]
 pub mod console;
-mod config;
-mod lang_items;
-mod loader;
-mod mm;
-mod logging;
-mod sbi;
-mod sync;
+pub mod config;
+pub mod drivers;
+pub mod fs;
+pub mod lang_items;
+pub mod logging;
+pub mod mm;
+pub mod sbi;
+pub mod sync;
 pub mod syscall;
 pub mod task;
+pub mod timer;
 pub mod trap;
-mod timer;
 
 use log::*;
 
@@ -111,7 +113,8 @@ fn rust_main() {
     trap::init();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
-    loader::list_apps();
+    fs::list_apps();
+
     task::run_tasks();
     panic!("Unreachable in rust_main!");
 }

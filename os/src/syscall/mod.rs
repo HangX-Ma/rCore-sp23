@@ -25,6 +25,8 @@ pub const SYSCALL_MMAP: usize = 222;
 pub const SYSCALL_SBRK: usize = 214;
 pub const SYSCALL_SPAWN: usize = 400;
 pub const SYSCALL_SET_PRIORITY: usize = 140;
+const SYSCALL_OPEN: usize = 56;
+const SYSCALL_CLOSE: usize = 57;
 
 mod fs;
 mod process;
@@ -35,6 +37,8 @@ use process::*;
 /// handle syscall exception with `syscall_id` and other arguments
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
     match syscall_id {
+        SYSCALL_OPEN => sys_open(args[1] as *const u8, args[2] as u32),
+        SYSCALL_CLOSE => sys_close(args[0]),
         SYSCALL_READ => sys_read(args[0], args[1] as *const u8, args[2]),
         SYSCALL_WRITE => sys_write(args[0], args[1] as *const u8, args[2]),
         SYSCALL_EXIT => sys_exit(args[0] as i32),

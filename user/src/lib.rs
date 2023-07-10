@@ -13,6 +13,9 @@ pub mod console;
 mod lang_items;
 pub mod syscall;
 
+#[macro_use]
+extern crate bitflags;
+
 pub use console::{STDOUT};
 pub use syscall::*;
 
@@ -89,6 +92,24 @@ impl TaskInfo {
             time: 0,
         }
     }
+}
+
+bitflags! {
+    pub struct OpenFlags: u32 {
+        const RDONLY = 0;
+        const WRONLY = 1 << 0;
+        const RDWR = 1 << 1;
+        const CREATE = 1 << 9;
+        const TRUNC = 1 << 10;
+    }
+}
+
+pub fn open(path: &str, flags: OpenFlags) -> isize {
+    sys_open(path, flags.bits)
+}
+
+pub fn close(fd: usize) -> isize {
+    sys_close(fd)
 }
 
 pub fn write(fd: usize, buffer: &[u8]) -> isize {

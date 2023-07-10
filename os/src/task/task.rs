@@ -7,8 +7,10 @@ use crate::mm::{MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE};
 use crate::sync::UPSafeCell;
 use crate::trap::{trap_handler, TrapContext};
 use alloc::sync::{Arc, Weak};
+use alloc::vec;
 use alloc::vec::Vec;
 use core::cell::RefMut;
+use crate::fs::{File, Stdin, Stdout};
 
 use crate::timer::get_time_ms;
 
@@ -55,6 +57,8 @@ pub struct TaskControlBlockInner {
     pub children: Vec<Arc<TaskControlBlock>>, // A vector containing TCBs of all child processes of the current process
     pub exit_code: i32, // It is set when active exit or execution error occurs
 
+    pub fd_table: Vec<Option<Arc<dyn File + Send + Sync>>>,
+
     pub stride: u64,
     pub priority: u64,
 }
@@ -80,6 +84,14 @@ impl TaskControlBlockInner {
     }
     pub fn set_priority(&mut self, level: u64) {
         self.priority = level;
+    }
+    pub fn alloc_fd(&mut self) -> usize {
+        if let Some(fd) = (0..self.fd_table.len()).find(|fd| self.fd_table[*fd].is_none()) {
+            fd
+        } else {
+            self.fd_table.push(None);
+            self.fd_table.len() - 1
+        }
     }
 }
 
@@ -119,6 +131,14 @@ impl TaskControlBlock {
                     parent: None,
                     children: Vec::new(),
                     exit_code: 0,
+                    fd_table: vec![
+                        // 0 -> stdin
+                        Some(Arc::new(Stdin)),
+                        // 1 -> stdout
+                        Some(Arc::new(Stdout)),
+                        // 2 -> stderr
+                        Some(Arc::new(Stdout)),
+                    ],
                     stride: 0,
                     priority: 16,
                 })
@@ -179,6 +199,15 @@ impl TaskControlBlock {
         let pid_handle = pid_alloc();
         let kernel_stack = KernelStack::new(&pid_handle);
         let kernel_stack_top = kernel_stack.get_top();
+        // copy fd table
+        let mut new_fd_table: Vec<Option<Arc<dyn File + Send + Sync>>> = Vec::new();
+        for fd in parent_inner.fd_table.iter() {
+            if let Some(file) = fd {
+                new_fd_table.push(Some(file.clone()));
+            } else {
+                new_fd_table.push(None);
+            }
+        }
         let task_control_block = Arc::new(TaskControlBlock {
             pid: pid_handle,
             kernel_stack,
@@ -198,6 +227,7 @@ impl TaskControlBlock {
                     parent: Some(Arc::downgrade(self)),
                     children: Vec::new(),
                     exit_code: 0,
+                    fd_table: new_fd_table,
                     stride: 0,
                     priority: 16,
                 })

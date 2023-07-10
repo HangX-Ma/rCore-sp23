@@ -156,6 +156,11 @@ lazy_static! {
         Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
 }
 
+/// the kernel token
+pub fn kernel_token() -> usize {
+    KERNEL_SPACE.exclusive_access().token()
+}
+
 /// memory set structure, controls virtual-memory space
 /// This structure binds the application with those virtual areas
 pub struct MemorySet {

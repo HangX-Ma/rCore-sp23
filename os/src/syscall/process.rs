@@ -24,11 +24,12 @@ use crate::task::{
 };
 
 use crate::trap::{TrapContext, trap_handler};
-use crate::loader::get_app_data_by_name;
 use crate::config::{MAX_SYSCALL_NUM, PAGE_SIZE, TRAP_CONTEXT_BASE, MAXVA};
 use crate::timer::{get_time_us, get_time_ms};
 use crate::mm::{translated_byte_buffer, translated_str, translated_refmut};
 use crate::mm::{VPNRange, VirtAddr, MapPermission, MemorySet, KERNEL_SPACE};
+
+use crate::fs::{open_file, OpenFlags, File};
 
 #[repr(C)]
 #[derive(Debug)]
@@ -82,9 +83,10 @@ pub fn sys_fork() -> isize {
 pub fn sys_exec(path: *const u8) -> isize {
     let token = current_user_token();
     let path = translated_str(token, path);
-    if let Some(data) = get_app_data_by_name(path.as_str()) {
+    if let Some(app_inode) = open_file(path.as_str(), OpenFlags::RDONLY) {
+        let all_data = app_inode.read_all();
         let task = current_task().unwrap();
-        task.exec(data);
+        task.exec(all_data.as_slice());
         0
     } else {
         -1
@@ -236,8 +238,9 @@ pub fn sys_spawn(path: *const u8) -> isize {
     let mut parent_inner = task.inner_exclusive_access();
     let token = parent_inner.memory_set.token();
     let path = translated_str(token, path);
-    if let Some(elf_data) = get_app_data_by_name(path.as_str()) {
-        let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
+    if let Some(app_inode) = open_file(path.as_str(), OpenFlags::RDONLY) {
+        let all_data = app_inode.read_all();
+        let (memory_set, user_sp, entry_point) = MemorySet::from_elf(all_data.as_slice());
         let trap_cx_ppn = memory_set
             .translate(VirtAddr::from(TRAP_CONTEXT_BASE).into())
             .unwrap()
@@ -246,6 +249,15 @@ pub fn sys_spawn(path: *const u8) -> isize {
         let pid_handle = pid_alloc();
         let kernel_stack = KernelStack::new(&pid_handle);
         let kernel_stack_top = kernel_stack.get_top();
+        // copy fd table
+        let mut new_fd_table: Vec<Option<Arc<dyn File + Send + Sync>>> = Vec::new();
+        for fd in parent_inner.fd_table.iter() {
+            if let Some(file) = fd {
+                new_fd_table.push(Some(file.clone()));
+            } else {
+                new_fd_table.push(None);
+            }
+        }
         let task_control_block = Arc::new(TaskControlBlock {
             pid: pid_handle,
             kernel_stack,
@@ -265,6 +277,7 @@ pub fn sys_spawn(path: *const u8) -> isize {
                     parent: Some(Arc::downgrade(&task)),
                     children: Vec::new(),
                     exit_code: 0,
+                    fd_table: new_fd_table,
                     stride: 0,
                     priority: 16,
                 })

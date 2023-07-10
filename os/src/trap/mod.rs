@@ -26,9 +26,7 @@ use crate::task::{
     update_task_syscall_times,
 };
 
-use crate::timer::{
-    set_next_trigger,
-};
+use crate::timer::set_next_trigger;
 
 // use crate::task::update_task_syscall_times;
 use core::arch::{global_asm, asm};
@@ -86,7 +84,7 @@ pub extern "C" fn trap_handler() -> ! {
         }
         Trap::Exception(Exception::StoreFault) 
         | Trap::Exception(Exception::StorePageFault)
-        | Trap::Exception(Exception::StoreMisaligned)
+        // | Trap::Exception(Exception::StoreMisaligned)
         | Trap::Exception(Exception::InstructionPageFault)
         | Trap::Exception(Exception::InstructionMisaligned)
         | Trap::Exception(Exception::LoadFault)

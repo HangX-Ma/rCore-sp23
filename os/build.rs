@@ -7,9 +7,10 @@ static TARGET: &str = "../user/target/riscv64gc-unknown-none-elf/release/";
 fn main() {
     println!("cargo:rerun-if-changed=../user/src/");
     println!("cargo:rerun-if-changed={}", TARGET);
-    link_user_bins().unwrap();
+    // link_user_bins().unwrap();
 }
 
+#[allow(unused)]
 fn link_user_bins() -> Result<()> {
     let mut f = File::create("src/link_app.S")?;
     let mut apps: Vec<String> = read_dir("../user/build/elf")?

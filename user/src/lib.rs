@@ -16,7 +16,7 @@ pub mod syscall;
 #[macro_use]
 extern crate bitflags;
 
-pub use console::{STDOUT};
+pub use console::STDOUT;
 pub use syscall::*;
 
 //? ch5 dynamic memory allocator  
@@ -104,8 +104,10 @@ bitflags! {
     }
 }
 
+const AT_FDCWD: isize = -100;
+
 pub fn open(path: &str, flags: OpenFlags) -> isize {
-    sys_open(path, flags.bits)
+    sys_openat(AT_FDCWD as usize, path, flags.bits, OpenFlags::RDWR.bits)
 }
 
 pub fn close(fd: usize) -> isize {

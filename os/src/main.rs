@@ -39,7 +39,6 @@ mod stack_btrace;
 use core::arch::global_asm;
 
 global_asm!(include_str!("entry.asm"));
-global_asm!(include_str!("link_app.S"));
 
 fn clear_bss() {
     extern "C" {
@@ -107,14 +106,11 @@ fn rust_main() {
     mm::frame_allocator_test();
     mm::remap_test();
 
-    task::add_initproc();
-    println!("after initproc!");
-
     trap::init();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
     fs::list_apps();
-
+    task::add_initproc();
     task::run_tasks();
     panic!("Unreachable in rust_main!");
 }

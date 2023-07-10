@@ -58,7 +58,7 @@ $(KERNEL_BIN): kernel
 	@$(OBJCOPY) $(KERNEL_ELF) --strip-all -O binary $@
 
 fs-img: $(APPS)
-	@make -C ../user build TEST=$(TEST) BASE=$(BASE)
+	@cd ../user && make build TEST=$(TEST) BASE=$(BASE)
 	@rm -f $(FS_IMG)
 	@cd ../easy-fs-fuse && cargo run --release -- -s ../user/build/app/ -t ../user/target/riscv64gc-unknown-none-elf/release/
 
@@ -76,7 +76,9 @@ disasm-vim: kernel
 	@vim $(DISASM_TMP)
 	@rm $(DISASM_TMP)
 
-run: build
+run: run-inner
+
+run-inner: build
 	@qemu-system-riscv64 $(QEMU_ARGS)
 
 debug: build
@@ -91,4 +93,4 @@ gdbserver: build
 gdbclient:
 	@riscv64-unknown-elf-gdb $(GDB_ARGS)
 
-.PHONY: build kernel clean run gdbserver gdbclient disasm disasm-vim
+.PHONY: build kernel clean run gdbserver gdbclient disasm disasm-vim fs-img

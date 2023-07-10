@@ -2,7 +2,7 @@
 use core::arch::asm;
 use super::{TimeVal, TaskInfo};
 
-pub const SYSCALL_OPEN: usize = 56;
+pub const SYSCALL_OPENAT: usize = 56;
 pub const SYSCALL_CLOSE: usize = 57;
 pub const SYSCALL_READ: usize = 63;
 pub const SYSCALL_WRITE: usize = 64;
@@ -35,10 +35,36 @@ fn syscall(id: usize, args: [usize; 3]) -> isize {
     ret
 }
 
-pub fn sys_open(path: &str, flags: u32) -> isize {
-    syscall(SYSCALL_OPEN, [path.as_ptr() as usize, flags as usize, 0])
+pub fn syscall6(id: usize, args: [usize; 6]) -> isize {
+    let mut ret: isize;
+    unsafe {
+        core::arch::asm!("ecall",
+            inlateout("x10") args[0] => ret,
+            in("x11") args[1],
+            in("x12") args[2],
+            in("x13") args[3],
+            in("x14") args[4],
+            in("x15") args[5],
+            in("x17") id
+        );
+    }
+    ret
 }
 
+
+pub fn sys_openat(dirfd: usize, path: &str, flags: u32, mode: u32) -> isize {
+    syscall6(
+        SYSCALL_OPENAT,
+        [
+            dirfd,
+            path.as_ptr() as usize,
+            flags as usize,
+            mode as usize,
+            0,
+            0,
+        ],
+    )
+}
 pub fn sys_close(fd: usize) -> isize {
     syscall(SYSCALL_CLOSE, [fd, 0, 0])
 }

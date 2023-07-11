@@ -2,7 +2,7 @@
 
 use crate::mm::{translated_byte_buffer, translated_str, UserBuffer};
 use crate::task::{current_task, current_user_token};
-use crate::fs::{open_file, OpenFlags};
+use crate::fs::{open_file, OpenFlags, Stat};
 
 pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
     let token = current_user_token();
@@ -69,4 +69,19 @@ pub fn sys_close(fd: usize) -> isize {
     }
     inner.fd_table[fd].take();
     0
+}
+
+/// YOUR JOB: Implement fstat.
+pub fn sys_fstat(_fd: usize, _st: *mut Stat) -> isize {
+    -1
+}
+
+/// YOUR JOB: Implement linkat.
+pub fn sys_linkat(_old_name: *const u8, _new_name: *const u8) -> isize {
+    -1
+}
+
+/// YOUR JOB: Implement unlinkat.
+pub fn sys_unlinkat(_name: *const u8) -> isize {
+    -1
 }

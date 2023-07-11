@@ -1,11 +1,14 @@
 // user/src/syscall.rs
 use core::arch::asm;
-use super::{TimeVal, TaskInfo};
+use super::{TimeVal, TaskInfo, Stat};
 
 pub const SYSCALL_OPENAT: usize = 56;
 pub const SYSCALL_CLOSE: usize = 57;
 pub const SYSCALL_READ: usize = 63;
 pub const SYSCALL_WRITE: usize = 64;
+pub const SYSCALL_UNLINKAT: usize = 35;
+pub const SYSCALL_LINKAT: usize = 37;
+pub const SYSCALL_FSTAT: usize = 80;
 pub const SYSCALL_EXIT: usize = 93;
 pub const SYSCALL_YIELD: usize = 124;
 pub const SYSCALL_GET_TIME: usize = 169;
@@ -176,4 +179,32 @@ pub fn sys_spawn(path: &str) -> isize {
 // 返回值：如果输入合法则返回 prio，否则返回 -1
 pub fn sys_set_priority(prio: isize) -> isize {
     syscall(SYSCALL_SET_PRIORITY, [prio as usize, 0, 0])
+}
+
+pub fn sys_linkat(
+    old_dirfd: usize,
+    old_path: &str,
+    new_dirfd: usize,
+    new_path: &str,
+    flags: usize,
+) -> isize {
+    syscall6(
+        SYSCALL_LINKAT,
+        [
+            old_dirfd,
+            old_path.as_ptr() as usize,
+            new_dirfd,
+            new_path.as_ptr() as usize,
+            flags,
+            0,
+        ],
+    )
+}
+
+pub fn sys_unlinkat(dirfd: usize, path: &str, flags: usize) -> isize {
+    syscall(SYSCALL_UNLINKAT, [dirfd, path.as_ptr() as usize, flags])
+}
+
+pub fn sys_fstat(fd: usize, st: &Stat) -> isize {
+    syscall(SYSCALL_FSTAT, [fd, st as *const _ as usize, 0])
 }

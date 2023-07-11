@@ -6,6 +6,7 @@
 pub const BLOCK_SZ: usize = 512;
 
 extern crate alloc;
+extern crate log;
 
 mod bitmap;
 mod block_cache;
@@ -20,3 +21,4 @@ pub use block_dev::BlockDevice;
 pub use efs::EasyFileSystem;
 use layout::*;
 pub use vfs::Inode;
+pub use log::*;

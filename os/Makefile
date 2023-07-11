@@ -76,9 +76,9 @@ disasm-vim: kernel
 	@vim $(DISASM_TMP)
 	@rm $(DISASM_TMP)
 
-run: run-inner
+run: build run-inner
 
-run-inner: build
+run-inner: 
 	@qemu-system-riscv64 $(QEMU_ARGS)
 
 debug: build
@@ -93,4 +93,4 @@ gdbserver: build
 gdbclient:
 	@riscv64-unknown-elf-gdb $(GDB_ARGS)
 
-.PHONY: build kernel clean run gdbserver gdbclient disasm disasm-vim fs-img
+.PHONY: build kernel clean run-inner gdbserver gdbclient disasm disasm-vim fs-img

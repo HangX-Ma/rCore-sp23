@@ -40,18 +40,15 @@ use core::arch::global_asm;
 
 global_asm!(include_str!("entry.asm"));
 
+/// clear BSS segment
 fn clear_bss() {
     extern "C" {
-        static mut sbss: u64;
-        static mut ebss: u64;
+        fn sbss();
+        fn ebss();
     }
-
     unsafe {
-        (sbss as usize..ebss as usize).for_each(|ptr|{
-                // use volatile to avoid compiler optimization
-                (ptr as *mut u8).write_volatile(0);
-            }
-        );
+        core::slice::from_raw_parts_mut(sbss as usize as *mut u8, ebss as usize - sbss as usize)
+            .fill(0);
     }
 }
 

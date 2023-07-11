@@ -69,15 +69,15 @@ pub fn enable_timer_interrupt() {
 pub extern "C" fn trap_handler() -> ! {
     user_time_start(); //* ch3-pro2
     set_kernel_trap_entry(); // deal with S Mode trap in kernel
-    let mut cx = current_trap_cx();  // the app's trap context locates in user space not kernel space now
     let scause = scause::read(); // get trap cause
     let stval = stval::read(); // get extra value
     match scause.cause() {
         Trap::Exception(Exception::UserEnvCall) => {
+            let mut cx = current_trap_cx();  // the app's trap context locates in user space not kernel space now
             let syscall_id = cx.x[17];
             update_task_syscall_times(syscall_id);
             cx.sepc += 4;
-            let result = syscall(syscall_id, [cx.x[10], cx.x[11], cx.x[12]]) as usize;
+            let result = syscall(syscall_id, [cx.x[10], cx.x[11], cx.x[12], cx.x[13]]) as usize;
             // cx is changed during sys_exec, so we have to call it again
             cx = current_trap_cx();
             cx.x[10] = result as usize;
@@ -85,6 +85,7 @@ pub extern "C" fn trap_handler() -> ! {
         Trap::Exception(Exception::StoreFault) 
         | Trap::Exception(Exception::StorePageFault)
         // | Trap::Exception(Exception::StoreMisaligned)
+        | Trap::Exception(Exception::InstructionFault)
         | Trap::Exception(Exception::InstructionPageFault)
         | Trap::Exception(Exception::InstructionMisaligned)
         | Trap::Exception(Exception::LoadFault)

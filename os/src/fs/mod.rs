@@ -4,9 +4,21 @@ mod inode;
 mod stdio;
 
 use crate::mm::UserBuffer;
+use core::any::Any;
+
+/// convert current type to &dyn Any
+pub trait AnyConvertor {
+    fn as_any(&self) -> &dyn Any;
+}
+
+impl<T: 'static> AnyConvertor for T {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
 
 /// trait File for all file types
-pub trait File: Send + Sync {
+pub trait File: Send + Sync + AnyConvertor {
     /// the file readable?
     fn readable(&self) -> bool;
     /// the file writable?
@@ -30,7 +42,7 @@ pub struct Stat {
     /// number of hard links
     pub nlink: u32,
     /// unused pad
-    pad: [u64; 7],
+    pub pad: [u64; 7],
 }
 
 bitflags! {
@@ -46,5 +58,5 @@ bitflags! {
     }
 }
 
-pub use inode::{list_apps, open_file, OSInode, OpenFlags};
+pub use inode::{list_apps, open_file, OSInode, OpenFlags, ROOT_INODE};
 pub use stdio::{Stdin, Stdout};

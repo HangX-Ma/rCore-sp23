@@ -9,7 +9,8 @@ This repository record the development process about rCore OS spring 2023 labs. 
 - [x] [Chapter 3: Multiprogramming and time-sharing multitasking](http://hangx-ma.github.io/2023/07/01/rcore-note-ch3.html)
 - [x] [Chapter 4: Address Space](https://hangx-ma.github.io/2023/07/04/rcore-note-ch4.html)
 - [x] [Chapter 5: Process](https://hangx-ma.github.io/2023/07/07/rcore-note-ch5.html)
-- [ ] Chapter 6: File systems
+- [x] [Chapter 6: File systems](https://hangx-ma.github.io/2023/07/10/rcore-note-ch6.html)
+- [ ] Chapter 7: Inter-process communication and I/O redirection
 
 ## License
 

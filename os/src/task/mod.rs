@@ -28,7 +28,7 @@ use crate::fs::{open_file, OpenFlags};
 use alloc::sync::Arc;
 use lazy_static::*;
 pub use pid::{pid_alloc, KernelStack, PidHandle};
-pub use manager::{fetch_task, add_task, pid2task, TaskManager};
+pub use manager::{fetch_task, add_task, pid2task, TaskManager, remove_from_pid2task};
 use switch::__switch;
 pub use task::{TaskControlBlock, TaskControlBlockInner, TaskStatus};
 pub use signal::{MAX_SIG, SignalFlags};
@@ -79,7 +79,8 @@ pub fn exit_current_and_run_next(exit_code: i32) {
         );
         panic!("All applications completed!");
     }
-
+    // remove from pid2task
+    remove_from_pid2task(task.getpid());
     // access current TCB exclusively
     let mut inner = task.inner_exclusive_access();
     // Change status to Zombie

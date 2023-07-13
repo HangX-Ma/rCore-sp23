@@ -72,7 +72,6 @@ pub fn pid2task(pid: usize) -> Option<Arc<TaskControlBlock>> {
     map.get(&pid).map(Arc::clone)
 }
 
-#[allow(unused)]
 /// Remove item(pid, _some_pcb) from PDI2PCB map (called by exit_current_and_run_next)
 pub fn remove_from_pid2task(pid: usize) {
     let mut map = PID2TCB.exclusive_access();

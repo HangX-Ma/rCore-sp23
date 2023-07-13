@@ -24,6 +24,10 @@ use crate::task::{
     user_time_start,
     user_time_end,
     update_task_syscall_times,
+    SignalFlags,
+    current_add_signal,
+    handle_signals,
+    check_signals_error_of_current,
 };
 
 use crate::timer::set_next_trigger;
@@ -92,11 +96,11 @@ pub extern "C" fn trap_handler() -> ! {
         | Trap::Exception(Exception::LoadPageFault) => {
             println!("[kernel] {:?} in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.",
                 scause.cause(), stval, current_trap_cx().sepc);
-            exit_current_and_run_next(-2);
+            current_add_signal(SignalFlags::SIGSEGV);
         }
         Trap::Exception(Exception::IllegalInstruction) => {
             println!("[kernel] IllegalInstruction in application, core dumped.");
-            exit_current_and_run_next(-3);
+            current_add_signal(SignalFlags::SIGILL);
         }
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
             set_next_trigger();
@@ -110,6 +114,15 @@ pub extern "C" fn trap_handler() -> ! {
             );
         }
     }
+    // handle signals (handle the sent signal)
+    handle_signals();
+
+    // check error signals (if error then exit)
+    if let Some((errno, msg)) = check_signals_error_of_current() {
+        println!("[kernel] trap_handler: .. check signals {}", msg);
+        exit_current_and_run_next(errno);
+    }
+
     user_time_end(); //* ch3-pro2
     trap_return();
 }

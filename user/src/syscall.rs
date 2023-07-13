@@ -1,6 +1,6 @@
 // user/src/syscall.rs
 use core::arch::asm;
-use super::{TimeVal, TaskInfo, Stat};
+use super::{TimeVal, TaskInfo, Stat, SignalAction};
 
 pub const SYSCALL_OPENAT: usize = 56;
 pub const SYSCALL_CLOSE: usize = 57;
@@ -11,11 +11,19 @@ pub const SYSCALL_LINKAT: usize = 37;
 pub const SYSCALL_FSTAT: usize = 80;
 pub const SYSCALL_EXIT: usize = 93;
 pub const SYSCALL_YIELD: usize = 124;
+pub const SYSCALL_KILL: usize = 129;
+pub const SYSCALL_SIGACTION: usize = 134;
+pub const SYSCALL_SIGPROCMASK: usize = 135;
+pub const SYSCALL_SIGRETURN: usize = 139;
 pub const SYSCALL_GET_TIME: usize = 169;
 pub const SYSCALL_TASK_INFO: usize = 410;
 pub const SYSCALL_MUNMAP: usize = 215;
 pub const SYSCALL_MMAP: usize = 222;
 pub const SYSCALL_SBRK: usize = 214;
+pub const SYSCALL_MAIL_READ: usize = 401;
+pub const SYSCALL_MAIL_WRITE: usize = 402;
+pub const SYSCALL_DUP: usize = 24;
+pub const SYSCALL_PIPE: usize = 59;
 pub const SYSCALL_GETPID: usize = 172;
 pub const SYSCALL_FORK: usize = 220;
 pub const SYSCALL_EXEC: usize = 221;
@@ -205,6 +213,56 @@ pub fn sys_unlinkat(dirfd: usize, path: &str, flags: usize) -> isize {
     syscall(SYSCALL_UNLINKAT, [dirfd, path.as_ptr() as usize, flags])
 }
 
+pub fn sys_dup(fd: usize) -> isize {
+    syscall(SYSCALL_DUP, [fd, 0, 0])
+}
+
+pub fn sys_pipe(pipe: &mut [usize]) -> isize {
+    syscall(SYSCALL_PIPE, [pipe.as_mut_ptr() as usize, 0, 0])
+}
+
 pub fn sys_fstat(fd: usize, st: &Stat) -> isize {
     syscall(SYSCALL_FSTAT, [fd, st as *const _ as usize, 0])
 }
+
+pub fn sys_mail_read(buffer: &mut [u8]) -> isize {
+    syscall(
+        SYSCALL_MAIL_READ,
+        [buffer.as_ptr() as usize, buffer.len(), 0],
+    )
+}
+
+pub fn sys_mail_write(pid: usize, buffer: &[u8]) -> isize {
+    syscall(
+        SYSCALL_MAIL_WRITE,
+        [pid, buffer.as_ptr() as usize, buffer.len()],
+    )
+}
+
+pub fn sys_sigaction(
+    signum: i32,
+    action: *const SignalAction,
+    old_action: *mut SignalAction,
+) -> isize {
+    syscall(
+        SYSCALL_SIGACTION,
+        [
+            signum as usize,
+            action as usize,
+            old_action as usize,
+        ],
+    )
+}
+
+pub fn sys_sigprocmask(mask: u32) -> isize {
+    syscall(SYSCALL_SIGPROCMASK, [mask as usize, 0, 0])
+}
+
+pub fn sys_sigreturn() -> isize {
+    syscall(SYSCALL_SIGRETURN, [0, 0, 0])
+}
+
+pub fn sys_kill(pid: usize, signal: i32) -> isize {
+    syscall(SYSCALL_KILL, [pid, signal as usize, 0])
+}
+

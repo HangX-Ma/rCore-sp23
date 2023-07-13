@@ -2,6 +2,7 @@
 
 mod inode;
 mod stdio;
+mod pipe;
 
 use crate::mm::UserBuffer;
 use core::any::Any;
@@ -59,4 +60,5 @@ bitflags! {
 }
 
 pub use inode::{list_apps, open_file, OSInode, OpenFlags, ROOT_INODE};
+pub use pipe::{make_pipe, Pipe};
 pub use stdio::{Stdin, Stdout};

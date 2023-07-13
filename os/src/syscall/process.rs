@@ -34,7 +34,7 @@ use crate::mm::{translated_byte_buffer,  translated_ref, translated_str, transla
 use crate::mm::{VPNRange, VirtAddr, MapPermission, MemorySet, KERNEL_SPACE};
 use alloc::string::String;
 
-use crate::fs::{open_file, OpenFlags, File};
+use crate::fs::{open_file, OpenFlags, File, MailBox};
 
 #[repr(C)]
 #[derive(Debug)]
@@ -304,6 +304,7 @@ pub fn sys_spawn(path: *const u8) -> isize {
                     killed: false,
                     frozen: false,
                     trap_ctx_backup: None,
+                    mailbox: MailBox::new(),
                     stride: 0,
                     priority: 16,
                 })

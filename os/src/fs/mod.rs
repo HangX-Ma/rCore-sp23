@@ -3,6 +3,7 @@
 mod inode;
 mod stdio;
 mod pipe;
+mod mailbox;
 
 use crate::mm::UserBuffer;
 use core::any::Any;
@@ -62,3 +63,4 @@ bitflags! {
 pub use inode::{list_apps, open_file, OSInode, OpenFlags, ROOT_INODE};
 pub use pipe::{make_pipe, Pipe};
 pub use stdio::{Stdin, Stdout};
+pub use mailbox::{Mail, MailBox, MailBoxInner, MailBoxStatus};

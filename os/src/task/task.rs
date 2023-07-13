@@ -1,7 +1,7 @@
 //! Types related to task management
 
 use super::{pid_alloc, KernelStack, TaskContext, PidHandle, SignalActions, SignalFlags};
-use crate::config::{MAX_SYSCALL_NUM,TRAP_CONTEXT_BASE};
+use crate::config::{MAX_SYSCALL_NUM, TRAP_CONTEXT_BASE};
 use crate::fs::{File, Stdin, Stdout};
 use crate::mm::{MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE, translated_refmut};
 use crate::sync::UPSafeCell;
@@ -11,6 +11,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::cell::RefMut;
 use alloc::string::String;
+use crate::fs::MailBox;
 
 use crate::timer::get_time_ms;
 
@@ -70,6 +71,9 @@ pub struct TaskControlBlockInner {
     // if the task is frozen by a signal
     pub frozen: bool,
     pub trap_ctx_backup: Option<TrapContext>,
+
+    /// ch7
+    pub mailbox: MailBox,
 
     pub stride: u64,
     pub priority: u64,
@@ -158,6 +162,7 @@ impl TaskControlBlock {
                     killed: false,
                     frozen: false,
                     trap_ctx_backup: None,
+                    mailbox: MailBox::new(),
                     stride: 0,
                     priority: 16,
                 })
@@ -278,6 +283,7 @@ impl TaskControlBlock {
                     killed: false,
                     frozen: false,
                     trap_ctx_backup: None,
+                    mailbox: MailBox::new(),
                     stride: 0,
                     priority: 16,
                 })

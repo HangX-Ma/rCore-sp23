@@ -25,3 +25,7 @@ pub const TRAP_CONTEXT_BASE: usize = TRAMPOLINE - PAGE_SIZE;
 pub use crate::board::{CLOCK_FREQ, MMIO};
 
 pub const BIG_STRIDE: u64 = u64::MAX;
+
+/// mailbox setting
+pub const MAX_MESSAGE_NUM: usize = 16;
+pub const MAX_MAIL_LENGTH: usize = 256;

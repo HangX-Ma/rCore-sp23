@@ -1,8 +1,9 @@
 //! File and filesystem-related syscalls
 
 use crate::mm::{translated_byte_buffer, translated_refmut, translated_str, UserBuffer};
-use crate::task::{current_task, current_user_token};
-use crate::fs::{make_pipe, open_file, OpenFlags, Stat, ROOT_INODE, OSInode, StatMode};
+use crate::task::{current_task, current_user_token, pid2task};
+use crate::fs::{make_pipe, open_file, OpenFlags, Stat, ROOT_INODE, OSInode, StatMode, MailBoxStatus};
+use crate::config::{MAX_MAIL_LENGTH, MAX_MESSAGE_NUM};
 use core::any::Any;
 use alloc::sync::Arc;
 
@@ -170,6 +171,85 @@ pub fn sys_unlinkat(name: *const u8) -> isize {
             inode.clear();
         }
         return ROOT_INODE.unlink(name.as_str());
+    }
+    -1
+}
+
+#[allow(unused)]
+pub fn sys_mail_read(buf: *mut u8, len: usize) -> isize {
+    if len == 0 {
+        return 0;
+    }
+    let task = current_task().unwrap();
+    let inner = task.inner_exclusive_access();
+    let token = inner.get_user_token();
+    let mut mailbox_inner = inner.mailbox.buffer.exclusive_access();
+    if mailbox_inner.is_empty() {
+        return -1;
+    }
+    let mailbox_head = mailbox_inner.head;
+    // the truncated mail length
+    let mlen = len.min(mailbox_inner.arr[mailbox_head].len);
+    let dst_vec = translated_byte_buffer(token, buf, mlen);
+    let src_ptr = mailbox_inner.arr[mailbox_head].data.as_ptr();
+    for (idx, dst) in dst_vec.into_iter().enumerate() {
+        unsafe {
+            dst.copy_from_slice(
+                core::slice::from_raw_parts(
+                    src_ptr.wrapping_add(idx) as *const u8,
+                    core::mem::size_of::<u8>()
+                    )
+            );
+        }
+    }
+    mailbox_inner.status = MailBoxStatus::Normal;
+    mailbox_inner.head = (mailbox_head + 1) % MAX_MAIL_LENGTH;
+    if mailbox_inner.head == mailbox_inner.tail {
+        mailbox_inner.status = MailBoxStatus::Empty;
+    }
+    0
+}
+
+#[allow(unused)]
+pub fn sys_mail_write(pid: usize, buf: *mut u8, len: usize) -> isize {
+    if core::ptr::null() == buf {
+        return -1;
+    }
+    if len == 0 {
+        return 0;
+    }
+    if let Some(target_task) = pid2task(pid) {
+        let target_task_ref = target_task.inner_exclusive_access();
+        let token = target_task_ref.get_user_token();
+        let mut mailbox_inner = target_task_ref.mailbox.buffer.exclusive_access();
+        if mailbox_inner.is_full() {
+            return -1;
+        }
+        let mailbox_tail = mailbox_inner.tail;
+        mailbox_inner.status = MailBoxStatus::Normal;
+        // the truncated mail length
+        let mlen = len.min(MAX_MAIL_LENGTH);
+        // prepare source data
+        let src_vec = translated_byte_buffer(token, buf, mlen);
+        // copy from source to dst
+        for (idx, src) in src_vec.into_iter().enumerate() {
+            unsafe {
+                mailbox_inner.arr[mailbox_tail].data[idx..=idx].copy_from_slice(
+                    core::slice::from_raw_parts(
+                            src.as_ptr(),
+                            core::mem::size_of::<u8>()
+                            )
+                    );
+            }
+        }
+        // store the mail length
+        mailbox_inner.arr[mailbox_tail].len = mlen;
+
+        mailbox_inner.tail = (mailbox_tail + 1) % MAX_MESSAGE_NUM;
+        if mailbox_inner.tail == mailbox_inner.head {
+            mailbox_inner.status = MailBoxStatus::Full;
+        }
+        return 0;
     }
     -1
 }

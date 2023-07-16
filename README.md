@@ -12,6 +12,7 @@ This repository record the development process about rCore OS spring 2023 labs. 
 - [x] [Chapter 6: File systems](https://hangx-ma.github.io/2023/07/10/rcore-note-ch6.html)
 - [x] [Chapter 7: Inter-process communication and I/O redirection](https://hangx-ma.github.io/2023/07/13/rcore-note-ch7.html)
 - [ ] Chapter 8: Concurrency
+> 🚀 It is a bit tough to reconstruct OS for concurrency. I want to postpone this schedule because I have another necessary project to do now. However, I will not renounce the plan to finish rCore and extend more functions to it. 
 
 ## License
 

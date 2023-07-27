@@ -1,4 +1,4 @@
 *.swp*
 Cargo.lock
 target
-link_app.S
+build

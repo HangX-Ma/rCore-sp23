@@ -1,6 +1,7 @@
 use bitflags::*;
 
 /// The max signal number
+#[allow(unused)]
 pub const MAX_SIG: usize = 31;
 
 bitflags! {

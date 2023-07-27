@@ -334,40 +334,8 @@ impl MemorySet {
         }
         // map user stack with U flags
         let max_end_va: VirtAddr = max_end_vpn.into();
-        let mut user_stack_bottom: usize = max_end_va.into();
-        // guard page
-        user_stack_bottom += PAGE_SIZE;
-        // user stack
-        let user_stack_top = user_stack_bottom + USER_STACK_SIZE;
-        memory_set.push(
-            MapArea::new(
-                user_stack_bottom.into(),
-                user_stack_top.into(),
-                MapType::Framed,
-                MapPermission::R | MapPermission::W | MapPermission::U,
-            ),
-            None,
-        );
-        // used in sbrk
-        memory_set.push(
-            MapArea::new(
-                user_stack_top.into(),
-                user_stack_top.into(),
-                MapType::Framed,
-                MapPermission::R | MapPermission::W | MapPermission::U,
-            ),
-            None,
-        );
-        // map TrapContext
-        memory_set.push(
-            MapArea::new(
-                TRAP_CONTEXT_BASE.into(),
-                TRAMPOLINE.into(),
-                MapType::Framed,
-                MapPermission::R | MapPermission::W,
-            ),
-            None,
-        );
+        let mut user_stack_top: usize = max_end_va.into();
+        user_stack_top += PAGE_SIZE;
         (
             memory_set,
             user_stack_top,

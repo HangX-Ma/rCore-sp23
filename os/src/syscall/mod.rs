@@ -38,15 +38,31 @@ pub const SYSCALL_OPEN: usize = 56;
 pub const SYSCALL_CLOSE: usize = 57;
 pub const SYSCALL_PIPE: usize = 59;
 pub const SYSCALL_DUP: usize = 24;
+pub const SYSCALL_THREAD_CREATE: usize = 460;
+pub const SYSCALL_WAITTID: usize = 462;
+pub const SYSCALL_MUTEX_CREATE: usize = 463;
+pub const SYSCALL_MUTEX_LOCK: usize = 464;
+pub const SYSCALL_MUTEX_UNLOCK: usize = 466;
+pub const SYSCALL_SEMAPHORE_CREATE: usize = 467;
+pub const SYSCALL_SEMAPHORE_UP: usize = 468;
+pub const SYSCALL_ENABLE_DEADLOCK_DETECT: usize = 469;
+pub const SYSCALL_SEMAPHORE_DOWN: usize = 470;
+pub const SYSCALL_CONDVAR_CREATE: usize = 471;
+pub const SYSCALL_CONDVAR_SIGNAL: usize = 472;
+pub const SYSCALL_CONDVAR_WAIT: usize = 473;
 
 mod fs;
 mod process;
+mod sync;
+mod thread;
 
 use fs::*;
 use process::*;
+use sync::*;
+use thread::*;
 
 use crate::fs::Stat;
-use crate::task::SignalAction;
+// use crate::task::SignalAction;
 
 /// handle syscall exception with `syscall_id` and other arguments
 pub fn syscall(syscall_id: usize, args: [usize; 4]) -> isize {
@@ -62,27 +78,39 @@ pub fn syscall(syscall_id: usize, args: [usize; 4]) -> isize {
         SYSCALL_FSTAT => sys_fstat(args[0], args[1] as *mut Stat),
         SYSCALL_EXIT => sys_exit(args[0] as i32),
         SYSCALL_YIELD => sys_yield(),
-        SYSCALL_KILL => sys_kill(args[0], args[1] as i32),
-        SYSCALL_SIGACTION => sys_sigaction(
-            args[0] as i32,
-            args[1] as *const SignalAction,
-            args[2] as *mut SignalAction,
-        ),
-        SYSCALL_SIGPROCMASK => sys_sigprocmask(args[0] as u32),
-        SYSCALL_SIGRETURN => sys_sigreturn(),
-        SYSCALL_MAIL_READ => sys_mail_read(args[0] as *mut u8, args[1] as usize),
-        SYSCALL_MAIL_WRITE => sys_mail_write(args[0] as usize, args[1] as *mut u8, args[2] as usize),
+        // SYSCALL_KILL => sys_kill(args[0], args[1] as i32),
+        // SYSCALL_SIGACTION => sys_sigaction(
+        //     args[0] as i32,
+        //     args[1] as *const SignalAction,
+        //     args[2] as *mut SignalAction,
+        // ),
+        // SYSCALL_SIGPROCMASK => sys_sigprocmask(args[0] as u32),
+        // SYSCALL_SIGRETURN => sys_sigreturn(),
+        // SYSCALL_MAIL_READ => sys_mail_read(args[0] as *mut u8, args[1] as usize),
+        // SYSCALL_MAIL_WRITE => sys_mail_write(args[0] as usize, args[1] as *mut u8, args[2] as usize),
         SYSCALL_GETPID => sys_getpid(),
         SYSCALL_FORK => sys_fork(),
         SYSCALL_EXEC => sys_exec(args[0] as *const u8, args[1] as *const usize),
         SYSCALL_WAITPID => sys_waitpid(args[0] as isize, args[1] as *mut i32),
         SYSCALL_GET_TIME => sys_get_time(args[0] as *mut TimeVal, args[1]),
-        SYSCALL_TASK_INFO => sys_task_info(args[0] as *mut TaskInfo),
-        SYSCALL_MMAP => sys_mmap(args[0], args[1], args[2]),
-        SYSCALL_MUNMAP => sys_munmap(args[0], args[1]),
-        SYSCALL_SBRK => sys_sbrk(args[0] as i32),
-        SYSCALL_SPAWN => sys_spawn(args[0] as *const u8),
-        SYSCALL_SET_PRIORITY => sys_set_priority(args[0] as isize),
+        // SYSCALL_TASK_INFO => sys_task_info(args[0] as *mut TaskInfo),
+        // SYSCALL_MMAP => sys_mmap(args[0], args[1], args[2]),
+        // SYSCALL_MUNMAP => sys_munmap(args[0], args[1]),
+        // SYSCALL_SBRK => sys_sbrk(args[0] as i32),
+        // SYSCALL_SPAWN => sys_spawn(args[0] as *const u8),
+        // SYSCALL_SET_PRIORITY => sys_set_priority(args[0] as isize),
+        SYSCALL_THREAD_CREATE => sys_thread_create(args[0], args[1]),
+        SYSCALL_WAITTID => sys_waittid(args[0]) as isize,
+        SYSCALL_MUTEX_CREATE => sys_mutex_create(args[0] == 1),
+        SYSCALL_MUTEX_LOCK => sys_mutex_lock(args[0]),
+        SYSCALL_MUTEX_UNLOCK => sys_mutex_unlock(args[0]),
+        SYSCALL_SEMAPHORE_CREATE => sys_semaphore_create(args[0]),
+        SYSCALL_SEMAPHORE_UP => sys_semaphore_up(args[0]),
+        SYSCALL_ENABLE_DEADLOCK_DETECT => sys_enable_deadlock_detect(args[0]),
+        SYSCALL_SEMAPHORE_DOWN => sys_semaphore_down(args[0]),
+        SYSCALL_CONDVAR_CREATE => sys_condvar_create(),
+        SYSCALL_CONDVAR_SIGNAL => sys_condvar_signal(args[0]),
+        SYSCALL_CONDVAR_WAIT => sys_condvar_wait(args[0], args[1]),
         _ => panic!("Unsupported syscall_id: {}", syscall_id),
     }
 }

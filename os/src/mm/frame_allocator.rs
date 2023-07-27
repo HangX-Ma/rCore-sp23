@@ -86,6 +86,7 @@ pub fn init_frame_allocator() {
 
 
 //? Use RAII concept to manage the frames' lifetime
+#[derive(Clone)]
 pub struct FrameTracker {
     pub ppn: PhysPageNum,
 }

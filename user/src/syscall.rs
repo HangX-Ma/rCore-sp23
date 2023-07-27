@@ -11,6 +11,7 @@ pub const SYSCALL_LINKAT: usize = 37;
 pub const SYSCALL_FSTAT: usize = 80;
 pub const SYSCALL_EXIT: usize = 93;
 pub const SYSCALL_YIELD: usize = 124;
+pub const SYSCALL_SLEEP: usize = 101;
 pub const SYSCALL_KILL: usize = 129;
 pub const SYSCALL_SIGACTION: usize = 134;
 pub const SYSCALL_SIGPROCMASK: usize = 135;
@@ -25,11 +26,25 @@ pub const SYSCALL_MAIL_WRITE: usize = 402;
 pub const SYSCALL_DUP: usize = 24;
 pub const SYSCALL_PIPE: usize = 59;
 pub const SYSCALL_GETPID: usize = 172;
+pub const SYSCALL_GETTID: usize = 178;
 pub const SYSCALL_FORK: usize = 220;
 pub const SYSCALL_EXEC: usize = 221;
 pub const SYSCALL_WAITPID: usize = 260;
 pub const SYSCALL_SPAWN: usize = 400;
 pub const SYSCALL_SET_PRIORITY: usize = 140;
+pub const SYSCALL_THREAD_CREATE: usize = 460;
+pub const SYSCALL_WAITTID: usize = 462;
+pub const SYSCALL_MUTEX_CREATE: usize = 463;
+pub const SYSCALL_MUTEX_LOCK: usize = 464;
+pub const SYSCALL_MUTEX_UNLOCK: usize = 466;
+pub const SYSCALL_SEMAPHORE_CREATE: usize = 467;
+pub const SYSCALL_SEMAPHORE_UP: usize = 468;
+pub const SYSCALL_ENABLE_DEADLOCK_DETECT: usize = 469;
+pub const SYSCALL_SEMAPHORE_DOWN: usize = 470;
+pub const SYSCALL_CONDVAR_CREATE: usize = 471;
+pub const SYSCALL_CONDVAR_SIGNAL: usize = 472;
+pub const SYSCALL_CONDVAR_WAIT: usize = 473;
+
 
 
 fn syscall(id: usize, args: [usize; 3]) -> isize {
@@ -238,6 +253,63 @@ pub fn sys_mail_write(pid: usize, buffer: &[u8]) -> isize {
         [pid, buffer.as_ptr() as usize, buffer.len()],
     )
 }
+
+pub fn sys_sleep(sleep_ms: usize) -> isize {
+    syscall(SYSCALL_SLEEP, [sleep_ms, 0, 0])
+}
+
+pub fn sys_thread_create(entry: usize, arg: usize) -> isize {
+    syscall(SYSCALL_THREAD_CREATE, [entry, arg, 0])
+}
+
+pub fn sys_gettid() -> isize {
+    syscall(SYSCALL_GETTID, [0; 3])
+}
+
+pub fn sys_waittid(tid: usize) -> isize {
+    syscall(SYSCALL_WAITTID, [tid, 0, 0])
+}
+
+pub fn sys_mutex_create(blocking: bool) -> isize {
+    syscall(SYSCALL_MUTEX_CREATE, [blocking as usize, 0, 0])
+}
+
+pub fn sys_mutex_lock(id: usize) -> isize {
+    syscall(SYSCALL_MUTEX_LOCK, [id, 0, 0])
+}
+
+pub fn sys_mutex_unlock(id: usize) -> isize {
+    syscall(SYSCALL_MUTEX_UNLOCK, [id, 0, 0])
+}
+
+pub fn sys_semaphore_create(res_count: usize) -> isize {
+    syscall(SYSCALL_SEMAPHORE_CREATE, [res_count, 0, 0])
+}
+
+pub fn sys_semaphore_up(sem_id: usize) -> isize {
+    syscall(SYSCALL_SEMAPHORE_UP, [sem_id, 0, 0])
+}
+
+pub fn sys_enable_deadlock_detect(enabled: usize) -> isize {
+    syscall(SYSCALL_ENABLE_DEADLOCK_DETECT, [enabled, 0, 0])
+}
+
+pub fn sys_semaphore_down(sem_id: usize) -> isize {
+    syscall(SYSCALL_SEMAPHORE_DOWN, [sem_id, 0, 0])
+}
+
+pub fn sys_condvar_create(_arg: usize) -> isize {
+    syscall(SYSCALL_CONDVAR_CREATE, [_arg, 0, 0])
+}
+
+pub fn sys_condvar_signal(condvar_id: usize) -> isize {
+    syscall(SYSCALL_CONDVAR_SIGNAL, [condvar_id, 0, 0])
+}
+
+pub fn sys_condvar_wait(condvar_id: usize, mutex_id: usize) -> isize {
+    syscall(SYSCALL_CONDVAR_WAIT, [condvar_id, mutex_id, 0])
+}
+
 
 pub fn sys_sigaction(
     signum: i32,

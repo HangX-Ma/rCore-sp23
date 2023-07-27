@@ -31,6 +31,7 @@ pub struct OSInodeInner {
 impl OSInode {
     /// create a new inode in memory
     pub fn new(readable: bool, writable: bool, inode: Arc<Inode>) -> Self {
+        trace!("kernel: OSInode::new");
         Self {
             readable,
             writable,
@@ -39,6 +40,7 @@ impl OSInode {
     }
     /// read all data from the inode
     pub fn read_all(&self) -> Vec<u8> {
+        trace!("kernel: OSInode::read_all");
         let mut inner = self.inner.exclusive_access();
         let mut buffer = [0u8; 512];
         let mut v: Vec<u8> = Vec::new();
@@ -112,6 +114,7 @@ impl OpenFlags {
 
 /// Open a file
 pub fn open_file(name: &str, flags: OpenFlags) -> Option<Arc<OSInode>> {
+    trace!("kernel: open_file: name = {}, flags = {:?}", name, flags);
     let (readable, writable) = flags.read_write();
     if flags.contains(OpenFlags::CREATE) {
         if let Some(inode) = ROOT_INODE.find(name) {
@@ -142,6 +145,7 @@ impl File for OSInode {
         self.writable
     }
     fn read(&self, mut buf: UserBuffer) -> usize {
+        trace!("kernel: OSInode::read");
         let mut inner = self.inner.exclusive_access();
         let mut total_read_size = 0usize;
         for slice in buf.buffers.iter_mut() {
@@ -155,6 +159,7 @@ impl File for OSInode {
         total_read_size
     }
     fn write(&self, buf: UserBuffer) -> usize {
+        trace!("kernel: OSInode::write");
         let mut inner = self.inner.exclusive_access();
         let mut total_write_size = 0usize;
         for slice in buf.buffers.iter() {

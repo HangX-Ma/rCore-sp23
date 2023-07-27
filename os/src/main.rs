@@ -12,6 +12,7 @@
 #[path = "boards/qemu.rs"]
 mod board;
 
+#[macro_use]
 extern crate log;
 #[macro_use]
 extern crate bitflags;

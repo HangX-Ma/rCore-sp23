@@ -14,23 +14,25 @@
 
 mod context;
 
-use crate::config::{TRAMPOLINE, TRAP_CONTEXT_BASE};
+use crate::config::TRAMPOLINE;
 use crate::syscall::syscall;
 use crate::task::{
     current_trap_cx,
     current_user_token,
     exit_current_and_run_next,
     suspend_current_and_run_next,
-    user_time_start,
-    user_time_end,
-    update_task_syscall_times,
+    // user_time_start,
+    // user_time_end,
+    // update_task_syscall_times,
     SignalFlags,
     current_add_signal,
-    handle_signals,
-    check_signals_error_of_current,
+    check_signals_of_current,
+    current_trap_cx_user_va,
+    // handle_signals,
+    // check_signals_error_of_current,
 };
 
-use crate::timer::set_next_trigger;
+use crate::timer::{check_timer, set_next_trigger};
 
 // use crate::task::update_task_syscall_times;
 use core::arch::{global_asm, asm};
@@ -48,8 +50,11 @@ pub fn init() {
 }
 
 fn set_kernel_trap_entry() {
+    extern "C" {
+        fn __trap_from_kernel();
+    }
     unsafe {
-        stvec::write(trap_from_kernel as usize, TrapMode::Direct);
+        stvec::write(__trap_from_kernel as usize, TrapMode::Direct);
     }
 }
 
@@ -70,8 +75,8 @@ pub fn enable_timer_interrupt() {
 
 #[no_mangle]
 /// handle an interrupt, exception, or system call from user space
-pub extern "C" fn trap_handler() -> ! {
-    user_time_start(); //* ch3-pro2
+pub fn trap_handler() -> ! {
+    // user_time_end(); //* ch3-pro2
     set_kernel_trap_entry(); // deal with S Mode trap in kernel
     let scause = scause::read(); // get trap cause
     let stval = stval::read(); // get extra value
@@ -79,7 +84,7 @@ pub extern "C" fn trap_handler() -> ! {
         Trap::Exception(Exception::UserEnvCall) => {
             let mut cx = current_trap_cx();  // the app's trap context locates in user space not kernel space now
             let syscall_id = cx.x[17];
-            update_task_syscall_times(syscall_id);
+            // update_task_syscall_times(syscall_id);
             cx.sepc += 4;
             let result = syscall(syscall_id, [cx.x[10], cx.x[11], cx.x[12], cx.x[13]]) as usize;
             // cx is changed during sys_exec, so we have to call it again
@@ -94,16 +99,17 @@ pub extern "C" fn trap_handler() -> ! {
         | Trap::Exception(Exception::InstructionMisaligned)
         | Trap::Exception(Exception::LoadFault)
         | Trap::Exception(Exception::LoadPageFault) => {
-            println!("[kernel] {:?} in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.",
+            error!("[kernel] {:?} in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.",
                 scause.cause(), stval, current_trap_cx().sepc);
             current_add_signal(SignalFlags::SIGSEGV);
         }
         Trap::Exception(Exception::IllegalInstruction) => {
-            println!("[kernel] IllegalInstruction in application, core dumped.");
+            error!("[kernel] IllegalInstruction in application, core dumped.");
             current_add_signal(SignalFlags::SIGILL);
         }
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
             set_next_trigger();
+            check_timer();
             suspend_current_and_run_next();
         }
         _ => {
@@ -115,15 +121,15 @@ pub extern "C" fn trap_handler() -> ! {
         }
     }
     // handle signals (handle the sent signal)
-    handle_signals();
+    // handle_signals();
 
     // check error signals (if error then exit)
-    if let Some((errno, msg)) = check_signals_error_of_current() {
-        println!("[kernel] trap_handler: .. check signals {}", msg);
+    if let Some((errno, msg)) = check_signals_of_current() {
+        trace!("[kernel] trap_handler: .. check signals {}", msg);
         exit_current_and_run_next(errno);
     }
 
-    user_time_end(); //* ch3-pro2
+    // user_time_start(); //* ch3-pro2
     trap_return();
 }
 
@@ -135,7 +141,7 @@ pub fn trap_return() -> ! {
     // set user trap entry to '__alltraps', this ensures that the applications
     // will jump to '__alltraps' when triggering S Mode trap
     set_user_trap_entry();
-    let trap_cx_ptr = TRAP_CONTEXT_BASE;
+    let trap_cx_user_va = current_trap_cx_user_va();
     let user_satp = current_user_token();
     extern "C" {
         fn __alltraps();
@@ -147,7 +153,7 @@ pub fn trap_return() -> ! {
             "fence.i",                  // clear i-cache
             "jr {restore_va}",          // jump to new addr of __restore asm function
             restore_va = in(reg) restore_va,
-            in("a0") trap_cx_ptr,       // a0 = virt addr of Trap Context
+            in("a0") trap_cx_user_va,   // a0 = virt addr of Trap Context
             in("a1") user_satp,         // a1 = phy addr of usr page table
             options(noreturn)
         );

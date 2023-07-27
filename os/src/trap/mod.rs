@@ -14,7 +14,7 @@
 
 mod context;
 
-use crate::syscall::{syscall};
+use crate::syscall::syscall;
 use crate::task::{
     exit_current_and_run_next,
     suspend_current_and_run_next,
@@ -65,7 +65,7 @@ pub unsafe extern "C" fn switch_cost (cx: &mut TrapContext) -> &mut TrapContext 
 #[no_mangle]
 /// handle an interrupt, exception, or system call from user space
 pub extern "C" fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
-    user_time_start();
+    user_time_end();
     let scause = scause::read(); // get trap cause
     let stval = stval::read(); // get extra value
     match scause.cause() {
@@ -109,7 +109,7 @@ pub extern "C" fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
             );
         }
     }
-    user_time_end();
+    user_time_start();
     cx
 }
 

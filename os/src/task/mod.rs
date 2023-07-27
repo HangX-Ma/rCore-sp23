@@ -29,6 +29,8 @@ pub static mut SWITCH_TASK_START: usize = 0;
 pub unsafe fn __switch(current_task_cx_ptr: *mut TaskContext, next_task_cx_ptr: *const TaskContext) {
     SWITCH_TASK_START = get_time_us();
     switch::__switch(current_task_cx_ptr, next_task_cx_ptr);
+    // 记录除了第一次运行外的 switch cost
+    crate::task::update_switch_cost(get_time_us() - SWITCH_TASK_START);
 }
 
 /// The task manager, where all the tasks are managed.

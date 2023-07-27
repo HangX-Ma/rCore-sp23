@@ -15,7 +15,9 @@ MODE		:= release
 # MODE		:= debug
 KERNEL_ELF	:= target/$(TARGET)/$(MODE)/os
 KERNEL_BIN	:= $(KERNEL_ELF).bin
-DISASM_TMP := target/$(TARGET)/$(MODE)/asm
+DISASM_TMP	:= target/$(TARGET)/$(MODE)/asm
+FS_IMG		:= ../user/target/$(TARGET)/$(MODE)/fs.img
+APPS		:= ../user/src/bin/*
 
 # Building mode argument
 ifeq ($(MODE), release)
@@ -26,7 +28,7 @@ endif
 DISASM ?= -x
 DUMP_DTB ?= false
 
-BASE ?= 0
+BASE ?= 1
 TEST ?= 0
 
 ifeq ($(DUMP_DTB), true)
@@ -39,12 +41,15 @@ KERNEL_ENTRY_PA := 0x80200000
 QEMU_ARGS		:= -machine virt$(DUMP_DTB_ARG)\
 					-nographic \
 					-bios $(BOOTLOADER) \
-					-device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA)
-GDB_ARGS		:= -ex 'file target/riscv64gc-unknown-none-elf/release/os' \
+					-device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA)\
+					-drive file=$(FS_IMG),if=none,format=raw,id=x0 \
+					-device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+GDB_ARGS		:= -ex 'file $(KERNEL_ELF)' \
 					-ex 'set arch riscv:rv64' \
 					-ex 'target remote localhost:1234'
 
-build: $(KERNEL_BIN)
+build: $(KERNEL_BIN) fs-img
 
 clean:
 	@cargo clean
@@ -52,8 +57,12 @@ clean:
 $(KERNEL_BIN): kernel
 	@$(OBJCOPY) $(KERNEL_ELF) --strip-all -O binary $@
 
-kernel:
+fs-img: $(APPS)
 	@cd ../user && make build TEST=$(TEST) BASE=$(BASE)
+	@rm -f $(FS_IMG)
+	@cd ../easy-fs-fuse && cargo run --release -- -s ../user/build/app/ -t ../user/target/riscv64gc-unknown-none-elf/release/
+
+kernel:
 	@echo Running platform: $(BOARD)
 	@cp src/linker-$(BOARD).ld src/linker.ld
 	@cargo build $(MODE_ARG)
@@ -67,8 +76,16 @@ disasm-vim: kernel
 	@vim $(DISASM_TMP)
 	@rm $(DISASM_TMP)
 
-run: build
+run: build run-inner
+
+run-inner: 
 	@qemu-system-riscv64 $(QEMU_ARGS)
+
+debug: build
+	@tmux new-session -d \
+		"qemu-system-riscv64 $(QEMU_ARGS) -s -S" && \
+		tmux split-window -h "riscv64-unknown-elf-gdb -ex 'file $(KERNEL_ELF)' -ex 'set arch riscv:rv64' -ex 'target remote localhost:1234'" && \
+		tmux -2 attach-session -d
 
 gdbserver: build
 	@qemu-system-riscv64 $(QEMU_ARGS) -s -S
@@ -76,4 +93,4 @@ gdbserver: build
 gdbclient:
 	@riscv64-unknown-elf-gdb $(GDB_ARGS)
 
-.PHONY: build kernel clean run gdbserver gdbclient disasm disasm-vim
+.PHONY: build kernel clean run-inner gdbserver gdbclient disasm disasm-vim fs-img

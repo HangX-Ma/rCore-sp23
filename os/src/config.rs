@@ -2,28 +2,30 @@
 
 
 /// user app's stack size
-pub const USER_STACK_SIZE: usize = 4096;
+pub const USER_STACK_SIZE: usize = 4096 * 2;
 /// kernel stack size
 pub const KERNEL_STACK_SIZE: usize = 4096 * 2;
 /// kernel heap size
-#[allow(unused)]
-pub const KERNEL_HEAP_SIZE: usize = 0x20000;
-/// the max number of apps
-pub const MAX_APP_NUM: usize = 20;
-/// base_addr(changed) of app
-pub const APP_BASE_ADDRESS: usize = 0x80400000;
-/// size limit of app
-pub const APP_SIZE_LIMIT: usize = 0x20000;
+pub const KERNEL_HEAP_SIZE: usize = 0x200_0000;
+/// page size is 4k
+pub const PAGE_SIZE: usize = 0x1000;
+/// page size bits is 12 bits
+pub const PAGE_SIZE_BITS: usize = 0xc;
+/// the physical memory end, 128 MB
+pub const MEMORY_END: usize = 0x88000000;
+
 /// the max number of syscall
 pub const MAX_SYSCALL_NUM: usize = 500;
-/// the physical memory end
-#[allow(unused)]
-pub const MEMORY_END: usize = 0x88000000;
-/*
-#[cfg(feature = "board_k210")]
-pub const CLOCK_FREQ: usize = 403000000 / 62;
 
-#[cfg(feature = "board_qemu")]
-pub const CLOCK_FREQ: usize = 12500000;
-*/
-pub use crate::board::CLOCK_FREQ;
+// virtual memory space settings
+pub const MAXVA: usize = usize::MAX;
+pub const TRAMPOLINE: usize = usize::MAX - PAGE_SIZE + 1;
+pub const TRAP_CONTEXT_BASE: usize = TRAMPOLINE - PAGE_SIZE;
+
+pub use crate::board::{CLOCK_FREQ, MMIO};
+
+pub const BIG_STRIDE: u64 = u64::MAX;
+
+/// mailbox setting
+pub const MAX_MESSAGE_NUM: usize = 16;
+pub const MAX_MAIL_LENGTH: usize = 256;
